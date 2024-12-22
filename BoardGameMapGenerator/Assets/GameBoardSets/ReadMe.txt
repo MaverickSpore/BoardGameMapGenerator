@@ -1,0 +1,1 @@
+Place zip folder into this GameBoardSets folder, then press the reload button.

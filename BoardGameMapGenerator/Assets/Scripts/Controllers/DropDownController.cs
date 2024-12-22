@@ -7,6 +7,6 @@ public class DropDownController : MonoBehaviour
 {
     public void SetManagerSelection()
     {
-        GameSelectManager.instance.SetGameSelected(this.gameObject.GetComponent<TMP_Dropdown>().value);
     }
+
 }
