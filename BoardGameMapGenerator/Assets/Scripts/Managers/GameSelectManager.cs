@@ -22,7 +22,10 @@ public class GameSelectManager : MonoBehaviour
 
     
     string GameNamesFilePath = "/GameBoardSets/";
-    List<string> GameNamesFromFolders;
+    string GameNamesTextFileName = "SelectedGameNames.txt";
+    public List<string> GameNamesFromFolders;
+    public List<string> FrontFoldersFromFolders;
+    public List<string> SubFoldersFromFolders;
 
 
     // Start is called before the first frame update
@@ -32,7 +35,10 @@ public class GameSelectManager : MonoBehaviour
         GameSelected = 0;
         gamesAdded = new List<TMP_Text>() { noGameAddedText };
         gamesAdded[0].GetComponent<AddedGameController>().HideButton();
-        if (LoadGameNames()) { gameNamesDropdown.AddOptions(GameNamesFromFolders); }
+        if (LoadGameNames()) 
+        { 
+            gameNamesDropdown.AddOptions(GameNamesFromFolders); 
+        }
         else { print("Game Name Loading Error - Game Names Not Loaded"); }
     }
 
@@ -86,7 +92,17 @@ public class GameSelectManager : MonoBehaviour
     }
     public void PressBuildButton()
     {
-        SceneManager.LoadScene(GameSelected + 1);
+        if (gamesAdded[0] == noGameAddedText) return;
+
+        string gamesAddedText = "";
+        foreach (TMP_Text gameName in gamesAdded)
+        {
+            gamesAddedText += gameName.text + ",";
+        }
+
+        File.WriteAllText(Application.dataPath + GameNamesFilePath + GameNamesTextFileName, gamesAddedText);
+
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
     }
     public void PressAddGame()
     {
@@ -108,11 +124,34 @@ public class GameSelectManager : MonoBehaviour
     {
         GameNamesFromFolders = new List<string>();
         DirectoryInfo dirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath);
-        //print(dirInfoPath.FullName);
-        FileInfo[] gameNames = dirInfoPath.GetFiles("*.zip", SearchOption.AllDirectories);
-        
+        DirectoryInfo[] gameNames = dirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
         if (gameNames.Length == 0) return false;
-        foreach (FileInfo gameName in gameNames) { GameNamesFromFolders.Add(gameName.Name.Substring(0,gameName.Name.Length - 4)); /*print(gameName.Name);*/ };
+        foreach (DirectoryInfo gameName in gameNames) { if (Directory.Exists(gameName.FullName)) { GameNamesFromFolders.Add(gameName.Name.Substring(0, gameName.Name.Length)); /*print(gameName.Name);*/ } };
+
+        return true;
+    }
+    public void PressTestFeature()
+    {
+        if (gamesAdded.Count <= 0 || gamesAdded[0] == noGameAddedText) return;
+        if (LoadGameSubFolders()) { }
+        else { print("Game Subfolders Loading Error - Game Subfolders Not Loaded"); }
+    }
+    bool LoadGameSubFolders()
+    {
+        FrontFoldersFromFolders = new List<string>();
+        SubFoldersFromFolders = new List<string>();
+        foreach (TMP_Text gameName in gamesAdded)
+        {
+            if (gameName == noGameAddedText) continue;
+            //print("Zip Folder: " + GameNamesFilePath + "/" + gameName.text);
+            DirectoryInfo dirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + gameName.text);
+            DirectoryInfo[] gameFolders = dirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
+            if (gameFolders.Length == 0) return false;
+
+            foreach (DirectoryInfo folder in gameFolders) { SubFoldersFromFolders.Add(folder.Name.Substring(0, folder.Name.Length)); /*print(gameName.Name);*/ };
+        }
+        //print(dirInfoPath.FullName);
+
 
         return true;
     }

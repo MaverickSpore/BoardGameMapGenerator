@@ -1,0 +1,5 @@
+z-index=3
+align=0
+name=Doors
+max=Door-Closed-Blue.png:1;Door-Closed-Green.png:1;Door-Closed-Red.png:9;Door-Open-Blue.png:1;Door-Open_Green.png:1;Door-Open-Red.png:9
+pairs=Door-Closed-Red.png:Door-Open-Red.png;Door-Closed-Blue.png:Door-Open-Blue.png;Door-Open_Green.png:Door-Closed-Green.png

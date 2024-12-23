@@ -1,0 +1,5 @@
+z-index=3
+align=0
+name=Other Tokens
+max=Noise Token.png:18;objective token blue.jpg:1;objective token green.JPG:1;objective token red.JPG:10;spawn token blue.jpg:1;spawn token.jpg:5;start token.jpg:1;exit token.jpg:1
+pairs=objective token blue.jpg:objective token red.JPG;objective token green.JPG:objective token red.JPG

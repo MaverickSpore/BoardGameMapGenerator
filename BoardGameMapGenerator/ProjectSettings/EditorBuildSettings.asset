@@ -12,6 +12,6 @@ EditorBuildSettings:
     path: Assets/Scenes/GameSelect.unity
     guid: 9c1466c850271e74e9b0a68b3e3eaf0f
   - enabled: 1
-    path: Assets/Scenes/_TemplateBoardGameMapCreation.unity
+    path: Assets/Scenes/BoardGameMapCreation.unity
     guid: 91877f05be63eef4c91e17b01da2e257
   m_configObjects: {}

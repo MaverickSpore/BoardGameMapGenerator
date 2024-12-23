@@ -1,0 +1,3 @@
+name=Tiles
+max=1R.png:1;1V.png:1;2R.png:1;2V.png:1;3R.png:1;3V.png:1;4R.png:1;4V.png:1;5R.png:1;5V.png:1;6R.png:1;6V.png:1;7R.png:1;7V.png:1;8R.png:1;8V.png:1;9R.png:1;9V.png:1
+pairs=1R.png:1V.png;2R.png:2V.png;3R.png:3V.png;4R.png:4V.png;5R.png:5V.png;6R.png:6V.png;7R.png:7V.png;8R.png:8V.png;9R.png:9V.png

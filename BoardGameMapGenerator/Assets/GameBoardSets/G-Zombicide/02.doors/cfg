@@ -1,0 +1,5 @@
+z-index=3
+align=0
+name=Doors
+max=closed door token blue.jpg:1;closed door token Green.jpg:1;closed door token red.jpg:10;open door token Red.jpg:10;open door token blue.JPG:1;open door token green.JPG:1
+pairs=closed door token blue.jpg:open door token blue.JPG;closed door token Green.jpg:open door token green.JPG;closed door token red.jpg:open door token Red.jpg
