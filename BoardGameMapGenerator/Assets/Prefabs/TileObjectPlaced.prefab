@@ -51,6 +51,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c2f6350ec0291748842b7800eb33c2f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  currentImage: {fileID: 4450341070523059491}
 --- !u!222 &8250844152396104289
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -133,8 +134,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: ChildTileObjectController, Assembly-CSharp
+      - m_Target: {fileID: 419534384042948676}
+        m_TargetAssemblyTypeName: TileObjectPlacedController, Assembly-CSharp
         m_MethodName: PressChildTile
         m_Mode: 1
         m_Arguments:

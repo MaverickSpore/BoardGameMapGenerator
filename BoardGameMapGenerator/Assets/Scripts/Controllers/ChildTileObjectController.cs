@@ -17,6 +17,10 @@ public class ChildTileObjectController : MonoBehaviour
         currentImage.GetComponent<RectTransform>().sizeDelta = new Vector2 (newImage.rect.width, newImage.rect.height);
         name = imageName;
     }
+    public Sprite GetImage()
+    {
+        return currentImage.sprite;
+    }
     public float GetHeight()
     {
         return currentImage.GetComponent<RectTransform>().sizeDelta.y + countText.GetComponent<RectTransform>().sizeDelta.y;

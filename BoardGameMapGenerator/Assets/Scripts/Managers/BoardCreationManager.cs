@@ -14,10 +14,12 @@ public class BoardCreationManager : MonoBehaviour
 
     [SerializeField] Canvas mainCanvas;
     [SerializeField] Button locationMarker;
+    [SerializeField] Button clearSelection;
     [SerializeField] RectTransform CategoriesContentArea;
     [SerializeField] TMP_Text categoriesTemplate;
     [SerializeField] ExpandableListController ExpandableListTemplate;
     [SerializeField] GameObject TilesListStartingLocation;
+    [SerializeField] TileObjectPlacedController TileObjectPlacedTemplate;
 
     
 
@@ -33,7 +35,9 @@ public class BoardCreationManager : MonoBehaviour
     List<GameObject> boardPieces = new List<GameObject>();
 
     //public bool pieceSelected;
-    public ChildTileObjectController selectedPiece;
+    ChildTileObjectController selectedPiece;
+
+    bool ableToPlace;
 
     // Start is called before the first frame update
     void Start()
@@ -56,18 +60,30 @@ public class BoardCreationManager : MonoBehaviour
     }
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonUp(0))
         {
             if (selectedPiece != null && selectedPiece.GetCurrent() > 0)
             {
-                Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                mousePos.z = 0;
-                GameObject newPiece = Instantiate(selectedPiece.gameObject, mousePos, Quaternion.identity, mainCanvas.transform);
-                boardPieces.Add(newPiece);
-                selectedPiece.SetCountText(selectedPiece.GetCurrent() - 1);
-                if (selectedPiece.GetCurrent() <= 0)
+                if (!ableToPlace)
                 {
-                    selectedPiece = null;
+                    ableToPlace = true;
+                }
+                else
+                {
+                    Vector3 mousePos = Input.mousePosition;
+                    Sprite selectedSprite = selectedPiece.GetImage();
+                    mousePos.x -= mousePos.x % selectedSprite.rect.width;
+                    mousePos.y -= mousePos.y % selectedSprite.rect.width;
+                    mousePos.z = 0;
+                    TileObjectPlacedController newPiece = Instantiate(TileObjectPlacedTemplate, mousePos, Quaternion.identity, mainCanvas.transform);
+                    boardPieces.Add(newPiece.gameObject);
+                    newPiece.SetImage(selectedPiece.GetImage());
+                    //newPiece.transform.position = new Vector3(mousePos.x, mousePos.y, 0);
+                    selectedPiece.SetCountText(selectedPiece.GetCurrent() - 1);
+                    if (selectedPiece.GetCurrent() <= 0)
+                    {
+                        PressClearSelection();
+                    }
                 }
             }
         }
@@ -618,6 +634,14 @@ public class BoardCreationManager : MonoBehaviour
     public void SetPieceSelected(ChildTileObjectController selected)
     {
         selectedPiece = selected;
+        clearSelection.interactable = true;
+        ableToPlace = false;
+    }
+    public void PressClearSelection()
+    {
+        selectedPiece = null;
+        clearSelection.interactable = false;
+        ableToPlace = false;
     }
 
 
