@@ -155,4 +155,30 @@ public class GameSelectManager : MonoBehaviour
 
         return true;
     }
+
+    List<string> SeperateStrings(string fullString, char delimiter = '\n')
+    {
+        if (string.IsNullOrEmpty(fullString))
+        {
+            return new List<string>();
+        }
+        
+        List<string> stringsList = new List<string>();
+
+        bool hasDelim = fullString.Contains(delimiter);
+        if (hasDelim)
+        {
+            string[] tempStringArr = fullString.Split(delimiter);
+            foreach (string str in tempStringArr)
+            {
+                stringsList.Add(str);
+            }
+        }
+        else
+        {
+            stringsList.Add(fullString);
+        }
+
+        return stringsList;
+    }
 }

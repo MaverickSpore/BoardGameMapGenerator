@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using TMPro;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,9 +12,12 @@ public class BoardCreationManager : MonoBehaviour
     [Range(1, 200)][SerializeField] float pieceHeight;
     [Range(1, 100)][SerializeField] float textHeight;
 
+    [SerializeField] Canvas mainCanvas;
     [SerializeField] Button locationMarker;
     [SerializeField] RectTransform CategoriesContentArea;
     [SerializeField] TMP_Text categoriesTemplate;
+    [SerializeField] ExpandableListController ExpandableListTemplate;
+    [SerializeField] GameObject TilesListStartingLocation;
 
     
 
@@ -25,16 +27,20 @@ public class BoardCreationManager : MonoBehaviour
     public List<List<string>> SubFoldersFromFolders;
 
 
+    List<ExpandableListController> GamesList;
+
 
     List<GameObject> boardPieces = new List<GameObject>();
 
-    public bool pieceSelected;
+    //public bool pieceSelected;
+    public ChildTileObjectController selectedPiece;
 
     // Start is called before the first frame update
     void Start()
     {
         instance = this;
-        pieceSelected = false;
+        //pieceSelected = false;
+        GamesList = new List<ExpandableListController>();
 
         //Button newMarker = Instantiate(locationMarker, this.transform);
         //newMarker.GetComponent<PotentialLocationController>().SetSize(pieceWidth, pieceHeight);
@@ -42,10 +48,29 @@ public class BoardCreationManager : MonoBehaviour
         if (GetGameNames()) { }
         else { print("Failed to get Game Names from File"); }
 
-        if (LoadGameSubFolders()) { }
-        else { print("Failed to get Game Subfolders using Game Names"); }
+        if (SetUpObjectsList()) { }
+        else { print("Failed to Set Up Object List"); }
 
-        SetCategoriesText();
+
+        //SetCategoriesText();
+    }
+    private void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (selectedPiece != null && selectedPiece.GetCurrent() > 0)
+            {
+                Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                mousePos.z = 0;
+                GameObject newPiece = Instantiate(selectedPiece.gameObject, mousePos, Quaternion.identity, mainCanvas.transform);
+                boardPieces.Add(newPiece);
+                selectedPiece.SetCountText(selectedPiece.GetCurrent() - 1);
+                if (selectedPiece.GetCurrent() <= 0)
+                {
+                    selectedPiece = null;
+                }
+            }
+        }
     }
     bool GetGameNames()
     { 
@@ -59,7 +84,322 @@ public class BoardCreationManager : MonoBehaviour
         return true;
     }
 
-    bool LoadGameSubFolders()
+
+    bool SetUpObjectsList()
+    {
+        bool result = true;
+
+
+        foreach (string gameName in GameNamesFromFolders)
+        {
+            DirectoryInfo dirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/");
+            FileInfo[] gameCFG = dirInfoPath.GetFiles("cfg", SearchOption.TopDirectoryOnly);
+
+            if (gameCFG.Length != 1)
+            {
+                return false;
+            }
+
+            // Get cfg String from folder
+            string configString = string.Empty;
+            FileInfo configFile = new FileInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/" + "cfg");
+            if (configFile.Exists)
+            {
+                FileStream configFileStream = configFile.OpenRead();
+                StreamReader configFileReader = new StreamReader(configFileStream);
+                configString = configFileReader.ReadToEnd();
+
+                //print(configFile.FullName + ": " + configString);
+            }
+            // cfg String from folder has been gotten
+
+            List<string> CFGStringsEnter = SeperateStrings(configString);
+            //ExpandableListController newExpandableListOld = null;
+
+            if (CFGStringsEnter.Count > 0)
+            {
+                //print("Each CFG String: ");
+                foreach (string CFGString in CFGStringsEnter)
+                {
+                    //print("\t" + testCFGString);
+
+                    if (CFGString.Contains("name"))
+                    {
+                        List<string> CFGNameStrings = SeperateStrings(CFGString, '=');
+                        if (CFGNameStrings[1] == null) { continue; };
+                        ExpandableListController newExpandableList = Instantiate(ExpandableListTemplate, TilesListStartingLocation.transform);
+                        newExpandableList.SetListName(CFGNameStrings[1]);
+                        newExpandableList.Init();
+                        float currentYOffset = -50;
+                        if (GamesList.Count > 0)
+                        {
+                            currentYOffset = GamesList[0].transform.position.y;
+                        }
+                        foreach (ExpandableListController game in GamesList)
+                        {
+                            currentYOffset += game.GetListHeight();
+                        }
+                        newExpandableList.SetYOffset(currentYOffset);
+                        GamesList.Add(newExpandableList);
+
+                        /*// Seeing if SetUpSubObject needs to not be separate
+
+                        DirectoryInfo subDirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/");
+                        DirectoryInfo[] subFoldersDirInfo = subDirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
+                        if (subFoldersDirInfo.Length == 0) return false;
+                        // subFoldersDirInfo should be all subfolders: Tiles, Doors, Cars, Other Tokens
+
+
+                        //float yOffset = 0;
+                        foreach (DirectoryInfo subFolder in subFoldersDirInfo)
+                        {
+
+
+
+                            FileInfo[] subGameCFG = subFolder.GetFiles("cfg", SearchOption.TopDirectoryOnly);
+
+                            if (subGameCFG.Length != 1)
+                            {
+                                return false;
+                            }
+
+                            // Get cfg String from folder
+                            string subConfigString = string.Empty;
+                            FileInfo subConfigFile = new FileInfo(subFolder.FullName + "/" + "cfg");
+                            if (subConfigFile.Exists)
+                            {
+                                FileStream configFileStream = subConfigFile.OpenRead();
+                                StreamReader configFileReader = new StreamReader(configFileStream);
+                                subConfigString = configFileReader.ReadToEnd();
+
+                                //print(configFile.FullName + ": " + configString);
+                            }
+                            // cfg String from folder has been gotten
+
+                            List<string> subCFGStringsEnter = SeperateStrings(subConfigString);
+
+                            if (subCFGStringsEnter.Count > 0)
+                            {
+                                //print("Each CFG String: ");
+                                foreach (string subCFGString in subCFGStringsEnter)
+                                {
+                                    //print("\t" + testCFGString);
+
+                                    if (subCFGString.Contains("name"))
+                                    {
+                                        List<string> subCFGNameStrings = SeperateStrings(subCFGString, '=');
+                                        if (subCFGNameStrings[1] == null) { continue; };
+                                        ExpandableListController newSubExpandableList = Instantiate(ExpandableListTemplate, newExpandableList.GetContentArea().transform);
+                                        newSubExpandableList.Init();
+                                        //yOffset = newExpandableList.GetListHeight();
+                                        newSubExpandableList.AddYOffset(newExpandableList.GetListHeight());
+                                        //print("YOffset: " + newExpandableList.GetListHeight());
+                                        newExpandableList.AddChildList(ref newSubExpandableList);
+                                        newSubExpandableList.SetListName(subCFGNameStrings[1]);
+
+                                    }
+                                }
+                                //print("String Ended");
+                            }
+
+
+
+
+                        }
+
+                        // End of SetUpSubObjects */
+
+                        if (newExpandableList != null && SetUpSubObjects(newExpandableList, gameName)) { result = true; }
+                        else { return false; }
+                    }
+
+                    /*
+                    List<string> testCFGStringsEq = SeperateStrings(testCFGString, '=');
+                    if (testCFGStringsEq.Count > 0)
+                    {
+                        print("\t\tEach CFG SubString: ");
+                        foreach (string testCFGSubString in testCFGStringsEq)
+                        {
+                            print("\t\t\t" + testCFGSubString);
+                        }
+                        print("\t\tSubString Ended");
+                    }
+                    */
+                }
+                //print("String Ended");
+            }
+
+        }
+
+        return result;
+    }
+    bool SetUpSubObjects(ExpandableListController expandableListParent, string gameName = "Default Game Name")
+    {
+        bool result = true;
+
+        if (expandableListParent == null)
+        {
+            print("List Parent Was NULL!!");
+            return false;
+        }
+
+
+
+        DirectoryInfo subDirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/");
+        DirectoryInfo[] subFoldersDirInfo = subDirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
+        if (subFoldersDirInfo.Length == 0) return false;
+        // subFoldersDirInfo should be all subfolders: Tiles, Doors, Cars, Other Tokens
+
+
+        //float yOffset = 0;
+        foreach (DirectoryInfo subFolder in subFoldersDirInfo)
+        {
+
+
+
+            FileInfo[] subGameCFG = subFolder.GetFiles("cfg", SearchOption.TopDirectoryOnly);
+
+            if (subGameCFG.Length != 1)
+            {
+                return false;
+            }
+
+            // Get cfg String from folder
+            string subConfigString = string.Empty;
+            FileInfo subConfigFile = new FileInfo(subFolder.FullName + "/" + "cfg");
+            if (subConfigFile.Exists)
+            {
+                FileStream configFileStream = subConfigFile.OpenRead();
+                StreamReader configFileReader = new StreamReader(configFileStream);
+                subConfigString = configFileReader.ReadToEnd();
+
+                //print(configFile.FullName + ": " + configString);
+            }
+            // cfg String from folder has been gotten
+
+            List<string> subCFGStringsEnter = SeperateStrings(subConfigString);
+
+            if (subCFGStringsEnter.Count > 0)
+            {
+                //print("Each CFG String: ");
+                foreach (string subCFGString in subCFGStringsEnter)
+                {
+                    //print("\t" + testCFGString);
+
+                    if (subCFGString.Contains("name"))
+                    {
+                        List<string> subCFGNameStrings = SeperateStrings(subCFGString, '=');
+                        if (subCFGNameStrings[1] == null) { continue; };
+                        ExpandableListController newSubExpandableList = Instantiate(ExpandableListTemplate, expandableListParent.GetContentArea().transform);
+                        newSubExpandableList.Init();
+                        //yOffset = newExpandableList.GetListHeight();
+                        newSubExpandableList.SetYOffset(expandableListParent.transform.position.y - expandableListParent.GetListHeight());
+                        //print("YOffset: " + newExpandableList.GetListHeight());
+                        expandableListParent.AddChildList(ref newSubExpandableList);
+                        newSubExpandableList.SetListName(subCFGNameStrings[1]);
+
+                        if (SetUpTilesInSubList(newSubExpandableList, subFolder)) { }
+                        else { print("Tiles In Sub List Not Set Up"); return false; }
+
+                    }
+                }
+                //print("String Ended");
+            }
+
+
+
+
+        }
+
+
+
+        return result;
+    }
+    bool SetUpTilesInSubList(ExpandableListController expandableListParent, DirectoryInfo subFolder)
+    {
+        bool result = true;
+
+        if (expandableListParent == null)
+            return false;
+        if (subFolder == null)
+            return false;
+
+
+        FileInfo[] subGameCFG = subFolder.GetFiles("cfg", SearchOption.TopDirectoryOnly);
+
+        if (subGameCFG.Length != 1)
+        {
+            return false;
+        }
+
+        // Get cfg String from folder
+        string subConfigString = string.Empty;
+        FileInfo subConfigFile = new FileInfo(subFolder.FullName + "/" + "cfg");
+        if (subConfigFile.Exists)
+        {
+            FileStream configFileStream = subConfigFile.OpenRead();
+            StreamReader configFileReader = new StreamReader(configFileStream);
+            subConfigString = configFileReader.ReadToEnd();
+        }
+        // cfg String from folder has been gotten
+
+        List<string> subCFGStringsEnter = SeperateStrings(subConfigString);
+
+        if (subCFGStringsEnter.Count > 0)
+        {
+            foreach (string subCFGString in subCFGStringsEnter)
+            {
+                if (subCFGString.Contains("max"))
+                {
+                    List<string> subCFGMaxStrings = SeperateStrings(subCFGString, '=');
+                    if (subCFGMaxStrings[1] == null) { continue; };
+
+                    List<string> maxStrings = SeperateStrings(subCFGMaxStrings[1], ';');
+
+                    foreach(string maxString in maxStrings)
+                    {
+                        List<string> tileCombo = SeperateStrings(maxString, ':');
+                        // tileCombo[0] = tile file name, tileCombo[1] = tile max count
+
+                        //print("Folder: " + subFolder.FullName);
+                        //print("Tile File Name: " + tileCombo[0]);
+
+                        if (tileCombo.Count < 2 || tileCombo[0] == null) { continue; }
+
+                        FileInfo[] tileFiles = subFolder.GetFiles(tileCombo[0], SearchOption.TopDirectoryOnly);
+                        if (tileFiles.Length != 1)
+                        {
+                            print("This tile has the incorrect amount of files associated.");
+                            return false;
+                        }
+
+                        foreach (FileInfo tileFile in tileFiles)
+                        {
+                            Sprite newSprite;
+                            Texture2D spriteTexture = LoadTexture(tileFile.FullName);
+                            newSprite = Sprite.Create(spriteTexture, new Rect(0, 0, spriteTexture.width, spriteTexture.height), new Vector2(0, 0));
+                            
+                            expandableListParent.AddChildSprite(ref newSprite, tileCombo[1], tileFile.Name);
+                            
+                        }
+
+                    }
+
+                }
+            }
+        }
+
+
+
+
+
+
+        return result;
+    }
+    
+
+
+    bool LoadGameSubFoldersOld()
     {
         SubFoldersFromFolders = new List<List<string>>();
 
@@ -70,6 +410,43 @@ public class BoardCreationManager : MonoBehaviour
             DirectoryInfo[] gameFolders = dirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
             if (gameFolders.Length == 0) return false;
 
+            // Get cfg String from folder
+            string configString = string.Empty;
+            FileInfo configFile = new FileInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/" + "cfg");
+            if (configFile.Exists)
+            {
+                FileStream configFileStream = configFile.OpenRead();
+                StreamReader configFileReader = new StreamReader(configFileStream);
+                configString = configFileReader.ReadToEnd();
+
+                //print(configFile.FullName + ": " + configString);
+            }
+            // cfg String from folder has been gotten
+
+            List<string> testCFGStringsEnter = SeperateStrings(configString);
+
+            if (testCFGStringsEnter.Count > 0)
+            {
+                print("Each CFG String: ");
+                foreach (string testCFGString in testCFGStringsEnter)
+                {
+                    print("\t" + testCFGString);
+                    List<string> testCFGStringsEq = SeperateStrings(testCFGString, '=');
+                    if (testCFGStringsEq.Count > 0)
+                    {
+                        print("\t\tEach CFG SubString: ");
+                        foreach (string testCFGSubString in testCFGStringsEq)
+                        {
+                            print("\t\t\t" + testCFGSubString);
+                        }
+                        print("\t\tSubString Ended");
+                    }
+                }
+                print("String Ended");
+            }
+
+
+
             List<string> subFoldersList = new List<string>();
             foreach (DirectoryInfo folder in gameFolders) { subFoldersList.Add(folder.Name.Substring(0, folder.Name.Length)); /*print(gameName.Name);*/ };
             SubFoldersFromFolders.Add(subFoldersList);
@@ -79,11 +456,11 @@ public class BoardCreationManager : MonoBehaviour
 
         return true;
     }
-
-    void SetCategoriesText()
+    void SetCategoriesTextOld()
     {
         ///// CHANGE TO INDIVIDUAL OBJECTS, LIKE THE GAME SELECT SCREEN /////
         ///// IT WILL MAKE ADDING SELECTABLE IMAGES MUCH EASIER... DUHH /////
+        /////           ^^  I believe I already did this  ^^            /////
 
 
         
@@ -111,9 +488,6 @@ public class BoardCreationManager : MonoBehaviour
             newText.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(250, textHeight);
             CategoriesContentArea.sizeDelta = new Vector2(CategoriesContentArea.sizeDelta.x, (contentYTotal) + 100);
             newText.text = GameNamesFromFolders[i];
-
-
-
 
             foreach (string category in SubFoldersFromFolders[i])
             {
@@ -164,6 +538,8 @@ public class BoardCreationManager : MonoBehaviour
         /*
         */
     }
+    
+    
     List<Sprite> LoadObjectsInSubFolder(string Game, string Category)
     {
         List<Sprite> result = new List<Sprite>();
@@ -181,10 +557,6 @@ public class BoardCreationManager : MonoBehaviour
             /*print(gameName.Name);*/ 
         };
         
-
-
-
-
         return result;
     }
     Texture2D LoadTexture(string FilePath)
@@ -205,4 +577,78 @@ public class BoardCreationManager : MonoBehaviour
         }
         return null;                     // Return null if load failed
     }
+
+
+
+
+
+
+
+
+
+
+    // Public Functions
+
+    public void AdjustsGamesListYOffset()
+    {
+        if (GamesList.Count <= 0) return;
+
+        float currentYOffset = GamesList[0].transform.position.y;
+        float contentAreaHeight = 0;
+
+        foreach (ExpandableListController game in GamesList)
+        {
+            game.SetYOffset(currentYOffset);
+
+            float currentSubYOffset = currentYOffset - game.GetTextHeight();
+            foreach (ExpandableListController subSection in game.GetChildList())
+            {
+                subSection.SetYOffset(currentSubYOffset);
+                currentSubYOffset -= subSection.GetListHeight();
+                contentAreaHeight += subSection.GetListHeight();
+            }
+
+            currentYOffset -= game.GetListHeight();
+            contentAreaHeight += game.GetTextHeight();
+        }
+
+        CategoriesContentArea.sizeDelta = new Vector2(CategoriesContentArea.sizeDelta.x, contentAreaHeight + 100);
+    }
+
+    public void SetPieceSelected(ChildTileObjectController selected)
+    {
+        selectedPiece = selected;
+    }
+
+
+
+
+    // Helper Fucntions
+
+    List<string> SeperateStrings(string fullString, char delimiter = '\n')
+    {
+        if (string.IsNullOrEmpty(fullString))
+        {
+            return new List<string>();
+        }
+
+        List<string> stringsList = new List<string>();
+
+        bool hasDelim = fullString.Contains(delimiter);
+        if (hasDelim)
+        {
+            string[] tempStringArr = fullString.Split(delimiter);
+            foreach (string str in tempStringArr)
+            {
+                stringsList.Add(str);
+            }
+        }
+        else
+        {
+            stringsList.Add(fullString);
+        }
+
+        return stringsList;
+    }
+
 }

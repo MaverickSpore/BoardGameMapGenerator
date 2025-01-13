@@ -27,7 +27,7 @@ public class PotentialLocationController : MonoBehaviour
 
     void LocationSelected()
     {
-        if (BoardCreationManager.instance.pieceSelected)
+        //if (BoardCreationManager.instance.pieceSelected)
         {
 
         }
