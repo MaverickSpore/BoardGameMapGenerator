@@ -853,6 +853,7 @@ public class BoardCreationManager : MonoBehaviour
         foreach (string boardPiece in boardPiecesList)
         {
             TileObjectPlacedController newPiece = Instantiate(TileObjectPlacedTemplate, new Vector3(0, 0, 0), Quaternion.identity, MapArea.transform);
+            newBoardPieces.Add(newPiece.gameObject);
             // for each loop based on boardPiece separated by ; delimiter
             List<string> boardPieceInfoList = SeperateStrings(boardPiece, ';');
             boardPieceInfoList.RemoveAt(boardPieceInfoList.Count - 1);
