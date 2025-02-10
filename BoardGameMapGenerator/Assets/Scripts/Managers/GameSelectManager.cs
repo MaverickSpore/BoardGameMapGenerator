@@ -171,7 +171,20 @@ public class GameSelectManager : MonoBehaviour
             string[] tempStringArr = fullString.Split(delimiter);
             foreach (string str in tempStringArr)
             {
-                stringsList.Add(str);
+                if (str.EndsWith("\n"))
+                {
+                    stringsList.Add(str.Substring(0, str.Length - 1));
+                }
+                else if (str.EndsWith("\r"))
+                {
+                    stringsList.Add(str.Substring(0, str.Length - 1));
+                }
+                else if (str.EndsWith("\r\n"))
+                {
+                    stringsList.Add(str.Substring(0, str.Length - 2));
+                }
+                else
+                    stringsList.Add(str);
             }
         }
         else

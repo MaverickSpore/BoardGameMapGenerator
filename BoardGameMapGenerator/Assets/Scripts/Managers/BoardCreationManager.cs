@@ -2,7 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using TMPro;
+using Unity.VisualScripting.Antlr3.Runtime;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class BoardCreationManager : MonoBehaviour
@@ -16,35 +19,58 @@ public class BoardCreationManager : MonoBehaviour
     [SerializeField] Button locationMarker;
     [SerializeField] Button clearSelection;
     [SerializeField] RectTransform CategoriesContentArea;
-    [SerializeField] TMP_Text categoriesTemplate;
+    [SerializeField] RectTransform MapArea;
     [SerializeField] ExpandableListController ExpandableListTemplate;
     [SerializeField] GameObject TilesListStartingLocation;
     [SerializeField] TileObjectPlacedController TileObjectPlacedTemplate;
+    [SerializeField] List<ModeButtonController> ModeButtons;
 
-    
+
 
     string GameNamesFilePath = "/GameBoardSets/";
     string GameNamesTextFileName = "SelectedGameNames.txt";
+    string MapSaveFilePath = "/SavedMaps/";
     public List<string> GameNamesFromFolders;
     public List<List<string>> SubFoldersFromFolders;
 
 
     List<ExpandableListController> GamesList;
+    Dictionary<string, ChildTileObjectController> SelectableTiles;
 
 
     List<GameObject> boardPieces = new List<GameObject>();
 
     //public bool pieceSelected;
     ChildTileObjectController selectedPiece;
+    TileObjectPlacedController selectedTile;
 
     bool ableToPlace;
+    bool isPlacedTileSelected;
+    bool areTilesLocked;
+
+    float gridSize;
+
+    public enum Mode
+    {
+        Deselect,
+        Delete,
+        Rotate,
+        Move,
+        ZForward,
+        ZBackward
+    }
+
+    Mode currentMode;
 
     // Start is called before the first frame update
     void Start()
     {
         instance = this;
         //pieceSelected = false;
+        isPlacedTileSelected = false;
         GamesList = new List<ExpandableListController>();
+        SelectableTiles = new Dictionary<string, ChildTileObjectController>();
+        gridSize = 32;
 
         //Button newMarker = Instantiate(locationMarker, this.transform);
         //newMarker.GetComponent<PotentialLocationController>().SetSize(pieceWidth, pieceHeight);
@@ -55,7 +81,10 @@ public class BoardCreationManager : MonoBehaviour
         if (SetUpObjectsList()) { }
         else { print("Failed to Set Up Object List"); }
 
-
+        foreach (ExpandableListController game in GamesList)
+        {
+            game.PressExpandButton(0);
+        }
         //SetCategoriesText();
     }
     private void Update()
@@ -70,16 +99,52 @@ public class BoardCreationManager : MonoBehaviour
                 }
                 else
                 {
+                    // Place Tile On Board
                     Vector3 mousePos = Input.mousePosition;
                     Sprite selectedSprite = selectedPiece.GetImage();
-                    mousePos.x -= mousePos.x % selectedSprite.rect.width;
-                    mousePos.y -= mousePos.y % selectedSprite.rect.width;
+
+                    if (isPlacedTileSelected == true && selectedTile != null && selectedTile.GetHovered() && selectedSprite == selectedTile.GetSprite())
+                        return;
+                    //mousePos.x -= (mousePos.x % (selectedSprite.rect.width / 2.0f)) - (selectedSprite.rect.width / 4.0f);
+                    //mousePos.y -= (mousePos.y % (selectedSprite.rect.height / 2.0f)) - (selectedSprite.rect.height / 4.0f);
                     mousePos.z = 0;
-                    TileObjectPlacedController newPiece = Instantiate(TileObjectPlacedTemplate, mousePos, Quaternion.identity, mainCanvas.transform);
+                    TileObjectPlacedController newPiece = Instantiate(TileObjectPlacedTemplate, mousePos, Quaternion.identity, MapArea.transform);
                     boardPieces.Add(newPiece.gameObject);
                     newPiece.SetImage(selectedPiece.GetImage());
+                    newPiece.SetParentTile(selectedPiece);
+                    newPiece.AdjustToGrid();
                     //newPiece.transform.position = new Vector3(mousePos.x, mousePos.y, 0);
                     selectedPiece.SetCountText(selectedPiece.GetCurrent() - 1);
+                    ChildTileObjectController pairedTile = selectedPiece.GetPairedTile();
+                    if (pairedTile != null)
+                    {
+                        if (pairedTile.GetCurrent() > 0 && selectedPiece.GetCurrent() < pairedTile.GetCurrent())
+                        {
+                            pairedTile.AddToCurrent(-1);
+                            newPiece.SetPairedTile(pairedTile);
+                        }
+                    }
+                    else if (selectedPiece.GetTilesPaired() != null)
+                    {
+                        // Get total current count from all tiles paired
+                        int totalCurrent = 0;
+                        foreach (ChildTileObjectController tile in selectedPiece.GetTilesPaired())
+                        {
+                            totalCurrent += tile.GetCurrent();
+                        }
+                        if (totalCurrent > 0 && selectedPiece.GetCurrent() < totalCurrent)
+                        {
+                            foreach (ChildTileObjectController tile in selectedPiece.GetTilesPaired())
+                            {
+                                if (tile.GetCurrent() > 0)
+                                {
+                                    tile.AddToCurrent(-1);
+                                    newPiece.SetPairedTile(tile);
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     if (selectedPiece.GetCurrent() <= 0)
                     {
                         PressClearSelection();
@@ -99,7 +164,6 @@ public class BoardCreationManager : MonoBehaviour
 
         return true;
     }
-
 
     bool SetUpObjectsList()
     {
@@ -146,7 +210,7 @@ public class BoardCreationManager : MonoBehaviour
                         ExpandableListController newExpandableList = Instantiate(ExpandableListTemplate, TilesListStartingLocation.transform);
                         newExpandableList.SetListName(CFGNameStrings[1]);
                         newExpandableList.Init();
-                        float currentYOffset = -50;
+                        float currentYOffset = 50;
                         if (GamesList.Count > 0)
                         {
                             currentYOffset = GamesList[0].transform.position.y;
@@ -158,91 +222,10 @@ public class BoardCreationManager : MonoBehaviour
                         newExpandableList.SetYOffset(currentYOffset);
                         GamesList.Add(newExpandableList);
 
-                        /*// Seeing if SetUpSubObject needs to not be separate
-
-                        DirectoryInfo subDirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/");
-                        DirectoryInfo[] subFoldersDirInfo = subDirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
-                        if (subFoldersDirInfo.Length == 0) return false;
-                        // subFoldersDirInfo should be all subfolders: Tiles, Doors, Cars, Other Tokens
-
-
-                        //float yOffset = 0;
-                        foreach (DirectoryInfo subFolder in subFoldersDirInfo)
-                        {
-
-
-
-                            FileInfo[] subGameCFG = subFolder.GetFiles("cfg", SearchOption.TopDirectoryOnly);
-
-                            if (subGameCFG.Length != 1)
-                            {
-                                return false;
-                            }
-
-                            // Get cfg String from folder
-                            string subConfigString = string.Empty;
-                            FileInfo subConfigFile = new FileInfo(subFolder.FullName + "/" + "cfg");
-                            if (subConfigFile.Exists)
-                            {
-                                FileStream configFileStream = subConfigFile.OpenRead();
-                                StreamReader configFileReader = new StreamReader(configFileStream);
-                                subConfigString = configFileReader.ReadToEnd();
-
-                                //print(configFile.FullName + ": " + configString);
-                            }
-                            // cfg String from folder has been gotten
-
-                            List<string> subCFGStringsEnter = SeperateStrings(subConfigString);
-
-                            if (subCFGStringsEnter.Count > 0)
-                            {
-                                //print("Each CFG String: ");
-                                foreach (string subCFGString in subCFGStringsEnter)
-                                {
-                                    //print("\t" + testCFGString);
-
-                                    if (subCFGString.Contains("name"))
-                                    {
-                                        List<string> subCFGNameStrings = SeperateStrings(subCFGString, '=');
-                                        if (subCFGNameStrings[1] == null) { continue; };
-                                        ExpandableListController newSubExpandableList = Instantiate(ExpandableListTemplate, newExpandableList.GetContentArea().transform);
-                                        newSubExpandableList.Init();
-                                        //yOffset = newExpandableList.GetListHeight();
-                                        newSubExpandableList.AddYOffset(newExpandableList.GetListHeight());
-                                        //print("YOffset: " + newExpandableList.GetListHeight());
-                                        newExpandableList.AddChildList(ref newSubExpandableList);
-                                        newSubExpandableList.SetListName(subCFGNameStrings[1]);
-
-                                    }
-                                }
-                                //print("String Ended");
-                            }
-
-
-
-
-                        }
-
-                        // End of SetUpSubObjects */
-
                         if (newExpandableList != null && SetUpSubObjects(newExpandableList, gameName)) { result = true; }
                         else { return false; }
                     }
-
-                    /*
-                    List<string> testCFGStringsEq = SeperateStrings(testCFGString, '=');
-                    if (testCFGStringsEq.Count > 0)
-                    {
-                        print("\t\tEach CFG SubString: ");
-                        foreach (string testCFGSubString in testCFGStringsEq)
-                        {
-                            print("\t\t\t" + testCFGSubString);
-                        }
-                        print("\t\tSubString Ended");
-                    }
-                    */
                 }
-                //print("String Ended");
             }
 
         }
@@ -360,6 +343,8 @@ public class BoardCreationManager : MonoBehaviour
         // cfg String from folder has been gotten
 
         List<string> subCFGStringsEnter = SeperateStrings(subConfigString);
+        List<string> subCFGStringsPair = new List<string>();
+        Dictionary<string, ChildTileObjectController> tileNameDictionary = new Dictionary<string, ChildTileObjectController>();
 
         if (subCFGStringsEnter.Count > 0)
         {
@@ -396,165 +381,66 @@ public class BoardCreationManager : MonoBehaviour
                             newSprite = Sprite.Create(spriteTexture, new Rect(0, 0, spriteTexture.width, spriteTexture.height), new Vector2(0, 0));
                             
                             expandableListParent.AddChildSprite(ref newSprite, tileCombo[1], tileFile.Name);
+
+                            tileNameDictionary.Add(tileFile.Name, expandableListParent.GetChildTiles()[expandableListParent.GetChildTiles().Count - 1]);
+                            SelectableTiles.Add(tileFile.Name, expandableListParent.GetChildTiles()[expandableListParent.GetChildTiles().Count - 1]);
                             
                         }
 
                     }
 
                 }
+                else if (subCFGString.Contains("pairs"))
+                {
+                    subCFGStringsPair.Add(subCFGString);
+                }
             }
         }
 
+        Dictionary<string, string> tilePairs = new Dictionary<string, string>();
+        // Separate the pairs into individual strings using ; and : as delimiters
+        foreach (string subCFGString in subCFGStringsPair)
+        {
+            List<string> subCFGPairStrings = SeperateStrings(subCFGString, '=');
+            if (subCFGPairStrings.Count > 0)
+            {
+                string subCFGPairString = subCFGPairStrings[1];
 
+                List<string> subCFGPairStringsSemi = SeperateStrings(subCFGPairString, ';');
+                if (subCFGPairStringsSemi.Count > 0)
+                {
+                    foreach (string subCFGPairStringSemi in subCFGPairStringsSemi)
+                    {
+                        // Separate the pair into individual strings using : as delimiter
+                        List<string> subCFGPairStringsColon = SeperateStrings(subCFGPairStringSemi, ':');
+                        if (subCFGPairStringsColon.Count == 2)
+                        {
+                            if (tilePairs.ContainsKey(subCFGPairStringsColon[0]))
+                            {
+                                tilePairs.Add(subCFGPairStringsColon[1], subCFGPairStringsColon[0]);
+                            }
+                            else
+                            {
+                                tilePairs.Add(subCFGPairStringsColon[0], subCFGPairStringsColon[1]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-
-
+        // Pair the tiles based on the tileNamesDictionary and tilePairs Dictionary
+        foreach (KeyValuePair<string, string> tileName in tilePairs)
+        {
+            if (tileNameDictionary.ContainsKey(tileName.Key) && tileNameDictionary.ContainsKey(tileName.Value))
+            {
+                tileNameDictionary[tileName.Key].SetPairedTile(tileNameDictionary[tileName.Value]);
+                tileNameDictionary[tileName.Value].AddToTilesPaired(tileNameDictionary[tileName.Key]);
+            }
+        }
 
         return result;
     }
-    
-
-
-    bool LoadGameSubFoldersOld()
-    {
-        SubFoldersFromFolders = new List<List<string>>();
-
-        foreach (string gameName in GameNamesFromFolders)
-        {
-            //print("Zip Folder: " + GameNamesFilePath + "/" + gameName.text);
-            DirectoryInfo dirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + gameName);
-            DirectoryInfo[] gameFolders = dirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
-            if (gameFolders.Length == 0) return false;
-
-            // Get cfg String from folder
-            string configString = string.Empty;
-            FileInfo configFile = new FileInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/" + "cfg");
-            if (configFile.Exists)
-            {
-                FileStream configFileStream = configFile.OpenRead();
-                StreamReader configFileReader = new StreamReader(configFileStream);
-                configString = configFileReader.ReadToEnd();
-
-                //print(configFile.FullName + ": " + configString);
-            }
-            // cfg String from folder has been gotten
-
-            List<string> testCFGStringsEnter = SeperateStrings(configString);
-
-            if (testCFGStringsEnter.Count > 0)
-            {
-                print("Each CFG String: ");
-                foreach (string testCFGString in testCFGStringsEnter)
-                {
-                    print("\t" + testCFGString);
-                    List<string> testCFGStringsEq = SeperateStrings(testCFGString, '=');
-                    if (testCFGStringsEq.Count > 0)
-                    {
-                        print("\t\tEach CFG SubString: ");
-                        foreach (string testCFGSubString in testCFGStringsEq)
-                        {
-                            print("\t\t\t" + testCFGSubString);
-                        }
-                        print("\t\tSubString Ended");
-                    }
-                }
-                print("String Ended");
-            }
-
-
-
-            List<string> subFoldersList = new List<string>();
-            foreach (DirectoryInfo folder in gameFolders) { subFoldersList.Add(folder.Name.Substring(0, folder.Name.Length)); /*print(gameName.Name);*/ };
-            SubFoldersFromFolders.Add(subFoldersList);
-        }
-        //print(dirInfoPath.FullName);
-
-
-        return true;
-    }
-    void SetCategoriesTextOld()
-    {
-        ///// CHANGE TO INDIVIDUAL OBJECTS, LIKE THE GAME SELECT SCREEN /////
-        ///// IT WILL MAKE ADDING SELECTABLE IMAGES MUCH EASIER... DUHH /////
-        /////           ^^  I believe I already did this  ^^            /////
-
-
-        
-        /*
-
-        */
-        categoriesTemplate.text = string.Empty;
-        categoriesTemplate.text = categoriesTemplate.text + "\n";
-        float subFoldersCount = 1;
-        float contentYTotal = 0;
-
-            categoriesTemplate.GetComponent<CategoryController>().HidePiece();
-            categoriesTemplate.gameObject.SetActive(false);
-
-        for (int i = 0; i < GameNamesFromFolders.Count; i++)
-        {
-            //categoriesTemplate.text = categoriesTemplate.text + "--" + GameNamesFromFolders[i] + "--\n";
-
-            TMP_Text newText = Instantiate(categoriesTemplate, CategoriesContentArea.transform);
-            newText.gameObject.SetActive(true);
-
-            contentYTotal -= textHeight;
-
-            newText.transform.position = new Vector3(newText.transform.position.x, contentYTotal, newText.transform.position.z);
-            newText.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(250, textHeight);
-            CategoriesContentArea.sizeDelta = new Vector2(CategoriesContentArea.sizeDelta.x, (contentYTotal) + 100);
-            newText.text = GameNamesFromFolders[i];
-
-            foreach (string category in SubFoldersFromFolders[i])
-            {
-                //categoriesTemplate.text = categoriesTemplate.text + "-" + category + "-\n";
-
-                TMP_Text newSubText = Instantiate(categoriesTemplate, CategoriesContentArea.transform);
-                newSubText.gameObject.SetActive(true);
-
-                contentYTotal -= textHeight;
-
-                newSubText.transform.position = new Vector3(newSubText.transform.position.x, contentYTotal, newSubText.transform.position.z);
-                newSubText.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(250, textHeight);
-                CategoriesContentArea.sizeDelta = new Vector2(CategoriesContentArea.sizeDelta.x, (contentYTotal) + 100);
-                newSubText.text = category;
-
-                List<Sprite> subObjects = LoadObjectsInSubFolder(GameNamesFromFolders[i], category);
-
-                if (subObjects.Count > 0) { }
-                else { continue; }
-
-                contentYTotal -= pieceHeight;
-                foreach (Sprite subObject in subObjects)
-                {
-                    TMP_Text newSubObject = Instantiate(categoriesTemplate, CategoriesContentArea.transform);
-                    newSubObject.gameObject.SetActive(true);
-
-                    contentYTotal -= subObject.texture.height;
-
-                    newSubObject.GetComponent<CategoryController>().ShowPiece();
-                    newSubObject.GetComponent<CategoryController>().SetImageSprite(subObject);
-
-                    newSubObject.transform.position = new Vector3(newSubObject.transform.position.x, contentYTotal + (subObject.texture.height / 2.0f), newSubObject.transform.position.z);
-                    newSubObject.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(subObject.texture.width, subObject.texture.height);
-                    CategoriesContentArea.sizeDelta = new Vector2(CategoriesContentArea.sizeDelta.x, (contentYTotal) + 100);
-                    //newSubObject.text = category;
-                    contentYTotal -= textHeight;
-                }
-
-
-
-                subFoldersCount++;
-            }
-            //categoriesTemplate.text = categoriesTemplate.text + "\n";
-            subFoldersCount += 1;
-        }
-        //CategoriesContentArea.sizeDelta = new Vector2(CategoriesContentArea.sizeDelta.x, 40 * (subFoldersCount + GameNamesFromFolders.Count));
-        CategoriesContentArea.sizeDelta = new Vector2(CategoriesContentArea.sizeDelta.x, -contentYTotal);
-        /*
-        */
-    }
-    
     
     List<Sprite> LoadObjectsInSubFolder(string Game, string Category)
     {
@@ -604,7 +490,10 @@ public class BoardCreationManager : MonoBehaviour
 
 
     // Public Functions
-
+    public void ReturnToMainMenu()
+    {
+        SceneManager.LoadScene(0);
+    }
     public void AdjustsGamesListYOffset()
     {
         if (GamesList.Count <= 0) return;
@@ -619,9 +508,12 @@ public class BoardCreationManager : MonoBehaviour
             float currentSubYOffset = currentYOffset - game.GetTextHeight();
             foreach (ExpandableListController subSection in game.GetChildList())
             {
+                if (subSection == null) continue;
+
                 subSection.SetYOffset(currentSubYOffset);
-                currentSubYOffset -= subSection.GetListHeight();
-                contentAreaHeight += subSection.GetListHeight();
+                currentSubYOffset -= subSection.GetListHeight() + 25;
+                contentAreaHeight += subSection.GetListHeight() + 25;
+                currentYOffset -= 25;
             }
 
             currentYOffset -= game.GetListHeight();
@@ -636,6 +528,7 @@ public class BoardCreationManager : MonoBehaviour
         selectedPiece = selected;
         clearSelection.interactable = true;
         ableToPlace = false;
+        SetMode(Mode.Deselect);
     }
     public void PressClearSelection()
     {
@@ -643,8 +536,94 @@ public class BoardCreationManager : MonoBehaviour
         clearSelection.interactable = false;
         ableToPlace = false;
     }
+    public void TileDeleted(TileObjectPlacedController deletedPiece)
+    {
+        if (deletedPiece == null) return;
+        boardPieces.Remove(deletedPiece.gameObject);
+    }
+    public void PlacedTileDeselected()
+    {
+        isPlacedTileSelected = false;
+        selectedTile = null;
+    }
+    public void PlacedTileSelected(TileObjectPlacedController selectedTile)
+    {
+        isPlacedTileSelected = true;
+        this.selectedTile = selectedTile;
+    }
+    public void ToggleTileLock()
+    {
+        areTilesLocked = !areTilesLocked;
+    }
+
+    public void PressNewMap()
+    {
+        NewMap();
+    }
+    public void PressSaveMap()
+    {
+        SaveMap();
+    }
+    public void PressLoadMap()
+    {
+        LoadMap();
+    }
+    public void PressAddPack()
+    {
+        AddPack();
+    }
+    public void PressRemovePack()
+    {
+        RemovePack();
+    }
 
 
+    // Getters
+    public float GetGridSize()
+    {
+        return gridSize;
+    }
+    public bool GetTilesLocked()
+    {
+        return areTilesLocked;
+    }
+    public Mode GetMode()
+    {
+        return currentMode;
+    }
+
+    // Setters
+    public void SetMode(Mode mode)
+    {
+        if (ModeButtons != null && ModeButtons.Count > 0)
+        {
+            foreach (ModeButtonController button in ModeButtons)
+            {
+                button.Deselect();
+            }
+        }
+
+        currentMode = mode;
+        if (mode != Mode.Deselect)
+            PressClearSelection();
+
+        // In case I want to add more functionality here, per mode
+        switch (currentMode)
+        {
+            case Mode.Deselect:
+                break;
+            case Mode.Delete:
+                break;
+            case Mode.Rotate:
+                break;
+            case Mode.Move:
+                break;
+            case Mode.ZForward:
+                break;
+            case Mode.ZBackward:
+                break;
+        }
+    }
 
 
     // Helper Fucntions
@@ -664,7 +643,20 @@ public class BoardCreationManager : MonoBehaviour
             string[] tempStringArr = fullString.Split(delimiter);
             foreach (string str in tempStringArr)
             {
-                stringsList.Add(str);
+                if (str.EndsWith("\n"))
+                {
+                    stringsList.Add(str.Substring(0, str.Length - 1));
+                }
+                else if (str.EndsWith("\r"))
+                {
+                    stringsList.Add(str.Substring(0, str.Length - 1));
+                }
+                else if (str.EndsWith("\r\n"))
+                {
+                    stringsList.Add(str.Substring(0, str.Length - 2));
+                }
+                else
+                    stringsList.Add(str);
             }
         }
         else
@@ -675,4 +667,265 @@ public class BoardCreationManager : MonoBehaviour
         return stringsList;
     }
 
+
+    // Menu Bar Functions
+    private void NewMap()
+    {
+        while (boardPieces.Count > 0)
+        {
+            boardPieces[0].GetComponent<TileObjectPlacedController>().PressDeleteTile(); // TODO: Add new tiles to board pieces in LoadMap function
+        }
+        PressClearSelection();
+        SetMode(Mode.Deselect);
+    }
+    private void SaveMap()
+    {
+        string path;
+
+#if UNITY_EDITOR
+        //path = EditorUtility.SaveFilePanel("Save Map", Application.dataPath + MapSaveFilePath, "Map", "map");
+        path = Application.dataPath + MapSaveFilePath + "Map.map";
+#else
+        //path = MaverickFileExplorer.SaveFilePanel("Save Map", Application.dataPath + MapSaveFilePath, "Map", "map");
+        path = Application.dataPath + MapSaveFilePath + "Map.map";
+#endif
+
+        if (path.Length != 0)
+        {
+            // save the information from GamesList and boardPieces to the file using File.WriteAllText
+            List<GameObject> GamesListObjectList = new List<GameObject>();
+            foreach (ExpandableListController game in GamesList)
+            {
+                GamesListObjectList.Add(game.gameObject);
+            }
+
+            string mapSaveString = string.Empty;
+            mapSaveString += "GamesList=";
+            mapSaveString += File.ReadAllText(Application.dataPath + GameNamesFilePath + GameNamesTextFileName);
+            mapSaveString += "\n";
+
+            // Board Pieces
+            mapSaveString += ConvertBoardPiecesToString();
+            mapSaveString += "\n";
+
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+
+            File.WriteAllText(path, mapSaveString);
+
+            
+
+        }
+
+
+    }
+    private void LoadMap()
+    {
+        string path;
+
+#if UNITY_EDITOR
+        //path = EditorUtility.OpenFilePanel("Load Map", Application.dataPath + MapSaveFilePath, "map");
+        path = Application.dataPath + MapSaveFilePath + "Map.map";
+#else
+        //path = MaverickFileExplorer.SaveFilePanel("Save Map", Application.dataPath + MapSaveFilePath, "map");
+        path = Application.dataPath + MapSaveFilePath + "Map.map";
+#endif
+
+        if (path.Length != 0)
+        {
+            NewMap();
+
+
+            // load the information from the file using File.ReadAllText
+            SelectableTiles.Clear();
+            File.OpenRead(path);
+            string mapLoadString = File.ReadAllText(path);
+
+            List<string> mapLoadStrings = SeperateStrings(mapLoadString);
+            foreach (string mapLoad in mapLoadStrings)
+            {
+                if (mapLoad.Contains("GamesList"))
+                {
+                    float yOffset = -50;
+                    if (GamesList[0] != null)
+                    {
+                        yOffset = GamesList[0].transform.position.y;
+                    }
+
+                    while (GamesList.Count > 0)
+                    {
+                        Destroy(GamesList[0].gameObject);
+                        GamesList.RemoveAt(0);
+                    }
+                    GamesList = new List<ExpandableListController>();
+                    GameNamesFromFolders.Clear();
+                    List<string> gamesList = SeperateStrings(mapLoad, '=');
+                    if (gamesList.Count > 0)
+                    {
+
+                        GameNamesFromFolders.AddRange(SeperateStrings(gamesList[1], ','));// gamesList[1].Split(","));
+                        GameNamesFromFolders.RemoveAt(GameNamesFromFolders.Count - 1);
+                        if (GameNamesFromFolders.Count > 0)
+                        {
+                            SetUpObjectsList();
+                            //ReloadGamesList();
+                        }
+                        foreach (ExpandableListController game in GamesList)
+                        {
+                            game.PressExpandButton(0);
+                        }
+                        GamesList[0].SetYOffset(yOffset);
+                        
+                        AdjustsGamesListYOffset();
+                    }
+                }
+                else if (mapLoad.Contains("BoardPieces")) // work on this part now
+                {
+                    List<string> boardPiecesList = SeperateStrings(mapLoad, '=');
+                    if (boardPiecesList.Count > 0)
+                    {
+                        boardPieces = ConvertStringToBoardPieces(boardPiecesList[1]);
+
+                        if (boardPieces.Count > 0)
+                        {
+                            ReloadBoardPiecess();
+                        }
+                    }
+                }
+            }
+        
+        }
+    }
+    private void AddPack()
+    {
+
+    }
+    private void RemovePack()
+    {
+
+    }
+
+    private void ReloadGamesList()
+    {
+        // place all the games back on the list based on the newly changed GamesList list
+        List<ExpandableListController> newGamesList = GamesList;
+        GamesList = new List<ExpandableListController>();
+        foreach (ExpandableListController game in newGamesList)
+        {
+            GamesList.Add(Instantiate(game, game.transform.position, game.transform.rotation, CategoriesContentArea.transform));
+        }
+    }
+    private void ReloadBoardPiecess()
+    {
+        // place all the board pieces back on the board based on the newly changed boardPieces list
+
+        /*List<GameObject> newBoardPieces = boardPieces;
+        boardPieces = new List<GameObject>();
+        foreach (GameObject piece in newBoardPieces)
+        {
+            boardPieces.Add(Instantiate(piece, piece.transform.position, piece.transform.rotation, MapArea.transform));
+        }*/
+    }
+    private string ConvertBoardPiecesToString()
+    {
+        string boardPiecesString = "BoardPieces=";
+
+        foreach (GameObject piece in boardPieces)
+        {
+            TileObjectPlacedController tile = piece.GetComponent<TileObjectPlacedController>();
+            // Add tile's location, sprite, and rotation of the current image using GetCurrentImage to the string
+            boardPiecesString += "Location:" + tile.transform.position.x + "," + tile.transform.position.y + "," + tile.transform.position.z + ";";
+            boardPiecesString += "Sprite:" + tile.GetTileName() + ";";
+            boardPiecesString += "Rotation:" + tile.GetRotation() + ";";
+            boardPiecesString += "/";
+        }
+        return boardPiecesString;
+    }
+    private List<GameObject> ConvertStringToBoardPieces(string BoardPiecesString)
+    {
+        List<GameObject> newBoardPieces = new List<GameObject>();
+
+        // for each loop based on BardPiecesString speparated by / delimiter
+        List<string> boardPiecesList = SeperateStrings(BoardPiecesString, '/');
+        boardPiecesList.RemoveAt(boardPiecesList.Count - 1);
+        foreach (string boardPiece in boardPiecesList)
+        {
+            TileObjectPlacedController newPiece = Instantiate(TileObjectPlacedTemplate, new Vector3(0, 0, 0), Quaternion.identity, MapArea.transform);
+            // for each loop based on boardPiece separated by ; delimiter
+            List<string> boardPieceInfoList = SeperateStrings(boardPiece, ';');
+            boardPieceInfoList.RemoveAt(boardPieceInfoList.Count - 1);
+            foreach (string pieceInfo in boardPieceInfoList)
+            {
+                List<string> strings = SeperateStrings(pieceInfo, ':');
+                if (strings[0].Contains("Location"))
+                {
+                    if (strings[1] == null) { continue; }
+                    List<string> locationStrings = SeperateStrings(strings[1], ',');
+                    if (locationStrings.Count < 3) { continue; }
+                    newPiece.transform.position = new Vector3(float.Parse(locationStrings[0]), float.Parse(locationStrings[1]), float.Parse(locationStrings[2]));
+                }
+                else if (strings[0].Contains("Sprite"))
+                {
+                    if (strings[1] == null) { continue; }
+                    if (SelectableTiles.ContainsKey(strings[1]))
+                    {
+                        newPiece.SetImage(SelectableTiles[strings[1]].GetImage());
+                        newPiece.SetParentTile(SelectableTiles[strings[1]]);
+                        SelectableTiles[strings[1]].AddToCurrent(-1);
+
+                        ChildTileObjectController pairedTile = SelectableTiles[strings[1]].GetPairedTile();
+                        if (pairedTile != null)
+                        {
+                            if (pairedTile.GetCurrent() > 0 && SelectableTiles[strings[1]].GetCurrent() < pairedTile.GetCurrent())
+                            {
+                                pairedTile.AddToCurrent(-1);
+                                newPiece.SetPairedTile(pairedTile);
+                            }
+                        }
+                        else if (SelectableTiles[strings[1]].GetTilesPaired() != null)
+                        {
+                            // Get total current count from all tiles paired
+                            int totalCurrent = 0;
+                            foreach (ChildTileObjectController tile in SelectableTiles[strings[1]].GetTilesPaired())
+                            {
+                                totalCurrent += tile.GetCurrent();
+                            }
+                            if (totalCurrent > 0 && SelectableTiles[strings[1]].GetCurrent() < totalCurrent)
+                            {
+                                foreach (ChildTileObjectController tile in SelectableTiles[strings[1]].GetTilesPaired())
+                                {
+                                    if (tile.GetCurrent() > 0)
+                                    {
+                                        tile.AddToCurrent(-1);
+                                        newPiece.SetPairedTile(tile);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+
+                    }
+                    else
+                    {
+                        print("Tile Not Found");
+                    }
+                }
+                else if (strings[0].Contains("Rotation"))
+                {
+                    if (strings[1] == null) { continue; }
+                    int rotation = int.Parse(strings[1]);
+                    while (rotation > 0)
+                    {
+                        newPiece.PressRotateCW();
+                        rotation -= 90;
+                    }
+                }
+            }
+        }
+
+        return newBoardPieces;
+    }
 }

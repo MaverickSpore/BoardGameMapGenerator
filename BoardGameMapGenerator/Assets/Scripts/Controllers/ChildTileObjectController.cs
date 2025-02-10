@@ -9,6 +9,9 @@ public class ChildTileObjectController : MonoBehaviour
     [SerializeField] Image currentImage;
     [SerializeField] TMP_Text countText;
 
+    public ChildTileObjectController pairedTile;
+    List<ChildTileObjectController> tilesPaired;
+
     int current;
     int max;
     public void SetImage(Sprite newImage, string imageName = "DefaultName")
@@ -20,6 +23,10 @@ public class ChildTileObjectController : MonoBehaviour
     public Sprite GetImage()
     {
         return currentImage.sprite;
+    }
+    public string GetSpriteName()
+    {
+        return name;
     }
     public float GetHeight()
     {
@@ -40,8 +47,40 @@ public class ChildTileObjectController : MonoBehaviour
     {
         return current;
     }
+    public int AddToCurrent(int add)
+    {
+        current += add;
+        countText.text = current + " / " + max;
+        return current;
+    }
     public void PressChildTile()
     {
-        BoardCreationManager.instance.SetPieceSelected(this);
+        if (GetCurrent() > 0)
+            BoardCreationManager.instance.SetPieceSelected(this);
+    }
+
+    public void SetPairedTile(ChildTileObjectController pairedTile)
+    {
+        this.pairedTile = pairedTile;
+    }
+    public ChildTileObjectController GetPairedTile()
+    {
+        return pairedTile;
+    }
+    public void SetTilesPaired(List<ChildTileObjectController> tilesPaired)
+    {
+        this.tilesPaired = tilesPaired;
+    }
+    public void AddToTilesPaired(ChildTileObjectController tile)
+    {
+        if (tilesPaired == null)
+            tilesPaired = new List<ChildTileObjectController>();
+        tilesPaired.Add(tile);
+    }
+    public List<ChildTileObjectController> GetTilesPaired()
+    {
+        if (tilesPaired == null)
+            tilesPaired = new List<ChildTileObjectController>();
+        return tilesPaired;
     }
 }

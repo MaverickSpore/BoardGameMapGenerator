@@ -382,6 +382,7 @@
 "Assets/Scripts/Controllers/ChildTileObjectController.cs"
 "Assets/Scripts/Controllers/DropDownController.cs"
 "Assets/Scripts/Controllers/ExpandableListController.cs"
+"Assets/Scripts/Controllers/ModeButtonController.cs"
 "Assets/Scripts/Controllers/PotentialLocationController.cs"
 "Assets/Scripts/Controllers/TileObjectPlacedController.cs"
 "Assets/Scripts/Managers/BoardCreationManager.cs"

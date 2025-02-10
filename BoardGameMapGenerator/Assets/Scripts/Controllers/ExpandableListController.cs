@@ -27,6 +27,18 @@ public class ExpandableListController : MonoBehaviour
 
 
         listHeight = expandButton.GetComponent<RectTransform>().rect.size.y;
+        expandableListText.GetComponent<RectTransform>().sizeDelta = new Vector2 (expandableListText.GetComponent<RectTransform>().sizeDelta.x, listHeight);
+
+        if (childLists != null)
+        {
+            foreach (ExpandableListController child in childLists)
+            {
+                if (child != null)
+                {
+                    child.PressExpandButton(0);
+                }
+            }
+        }
     }
     public void Init()
     {
@@ -34,14 +46,21 @@ public class ExpandableListController : MonoBehaviour
         childTiles = new List<ChildTileObjectController>();
         PressExpandButton();
     }
-    public void PressExpandButton()
+    public void PressExpandButton(int mode = -1)
     {
-        if (expandButtonText.text == ">")
+        if (expandButtonText.text == ">" || mode == 1)
         {
             expandButtonText.text = "v";
 
             BoardCreationManager.instance.AdjustsGamesListYOffset();
             ExpandContent();
+        }
+        else if (mode == 0)
+        {
+            expandButtonText.text = ">";
+            CollapseContent();
+
+            BoardCreationManager.instance.AdjustsGamesListYOffset();
         }
         else
         {
@@ -74,15 +93,15 @@ public class ExpandableListController : MonoBehaviour
     public float GetListHeight()
     {
         listHeight = expandButton.GetComponent<RectTransform>().rect.size.y;
-        if (!(childLists == null || childLists.Count == 0 || expandButtonText.text == ">"))
+        if (!(childLists == null || childLists.Count == 0) && IsExpanded())
         {
             //print("ChildLists was NOT NULL");
             foreach (ExpandableListController child in childLists)
             {
-                listHeight += child.GetListHeight();
+                    listHeight += child.GetListHeight();
             }
         }
-        if (!(childTiles == null || childTiles.Count == 0 || expandButtonText.text == ">"))
+        if (!(childTiles == null || childTiles.Count == 0) && IsExpanded())
         {
             foreach (ChildTileObjectController tile in childTiles)
             {
@@ -108,6 +127,7 @@ public class ExpandableListController : MonoBehaviour
     public void AddChildSprite(ref Sprite childSprite, string tileCount, string spriteName = "DefaultName")
     {
         ChildTileObjectController newTile = Instantiate(tileTemplate, content.transform);
+        
         newTile.SetImage(childSprite, spriteName);
         newTile.SetYOffset(transform.position.y - GetListHeight());
 
@@ -145,6 +165,17 @@ public class ExpandableListController : MonoBehaviour
         //print("Content Collapsed");
 
         content.SetActive(false);
+    }
+
+
+    public bool IsExpanded()
+    {
+        return expandButtonText.text == "v";
+    }
+
+    public List<ChildTileObjectController> GetChildTiles()
+    {
+        return childTiles;
     }
 
 }
