@@ -13,14 +13,18 @@ public class ExpandableListController : MonoBehaviour
     [SerializeField] TMP_Text expandButtonText;
     [SerializeField] GameObject content;
     [SerializeField] ChildTileObjectController tileTemplate;
+    [SerializeField] TMP_Text ListCountText;
 
     List<ExpandableListController> childLists;
     List<ChildTileObjectController> childTiles;
 
     public float listHeight;
+    string FileName;
+    int ListCount;
 
     void Start()
     {
+        ListCount = 1;
         if (expandButton == null) { print("Expand Button is NULL"); }
         if (expandButtonText == null) { print("Expand Button Text is NULL"); }
         if (content == null) { print("Expandable List Content is NULL"); }
@@ -44,6 +48,8 @@ public class ExpandableListController : MonoBehaviour
     {
         childLists = new List<ExpandableListController>();
         childTiles = new List<ChildTileObjectController>();
+        FileName = "";
+        ListCount = 1;
         PressExpandButton();
     }
     public void PressExpandButton(int mode = -1)
@@ -82,6 +88,14 @@ public class ExpandableListController : MonoBehaviour
     { 
         return expandableListText.text; 
     }
+    public void SetFileName(string name)
+    {
+        FileName = name;
+    }
+    public string GetFileName()
+    {
+        return FileName;
+    }
     public void SetYOffset(float offset)
     {
         gameObject.transform.position = new Vector3 (gameObject.transform.position.x, offset, gameObject.transform.position.z);
@@ -98,7 +112,7 @@ public class ExpandableListController : MonoBehaviour
             //print("ChildLists was NOT NULL");
             foreach (ExpandableListController child in childLists)
             {
-                    listHeight += child.GetListHeight();
+                listHeight += child.GetListHeight();
             }
         }
         if (!(childTiles == null || childTiles.Count == 0) && IsExpanded())
@@ -133,22 +147,15 @@ public class ExpandableListController : MonoBehaviour
 
         int count = int.Parse(tileCount);
         newTile.SetCountText(count, count);
+        newTile.SetSingleMax(count);
 
         AddChildTile(ref newTile);
-    }
-    public void RemoveChildSprite(ref Sprite childSprite)
-    {
-
     }
 
     void AddChildTile(ref ChildTileObjectController childTile)
     {
         childTiles.Add(childTile);
         BoardCreationManager.instance.AdjustsGamesListYOffset();
-    }
-    void RemoveChildTile(ref ChildTileObjectController childTile)
-    {
-        childTiles.Remove(childTile);
     }
 
 
@@ -178,4 +185,34 @@ public class ExpandableListController : MonoBehaviour
         return childTiles;
     }
 
+    public void AddToCount(int count)
+    {
+        ListCount += count;
+        if (ListCount > 1)
+        {
+            ListCountText.gameObject.SetActive(true);
+            ListCountText.text = "x" + ListCount.ToString();
+        }
+        else
+        {
+            ListCountText.gameObject.SetActive(false);
+        }
+    }
+    public void SetCount(int count)
+    {
+        ListCount = count;
+        if (ListCount > 1)
+        {
+            ListCountText.gameObject.SetActive(true);
+            ListCountText.text = "x" + ListCount.ToString();
+        }
+        else
+        {
+            ListCountText.gameObject.SetActive(false);
+        }
+    }
+    public int GetCount()
+    {
+        return ListCount;
+    }
 }

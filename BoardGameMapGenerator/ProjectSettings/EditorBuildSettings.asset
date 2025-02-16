@@ -14,4 +14,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/BoardGameMapCreation.unity
     guid: 91877f05be63eef4c91e17b01da2e257
+  - enabled: 1
+    path: Assets/Scenes/PackCreation.unity
+    guid: 5ef00844cbd9abd4fb5e5d5d52491e6a
   m_configObjects: {}

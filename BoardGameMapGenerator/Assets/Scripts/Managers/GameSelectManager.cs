@@ -21,9 +21,9 @@ public class GameSelectManager : MonoBehaviour
     int GameSelected;
 
     
-    string GameNamesFilePath = "/GameBoardSets/";
-    string GameNamesTextFileName = "SelectedGameNames.txt";
-    public List<string> GameNamesFromFolders;
+    readonly string GameNamesFilePath = "/GameBoardSets/";
+    readonly string GameNamesTextFileName = "SelectedGameNames.txt";
+    public Dictionary<string, string> GameNamesFromFolders;
     public List<string> FrontFoldersFromFolders;
     public List<string> SubFoldersFromFolders;
 
@@ -37,7 +37,12 @@ public class GameSelectManager : MonoBehaviour
         gamesAdded[0].GetComponent<AddedGameController>().HideButton();
         if (LoadGameNames()) 
         { 
-            gameNamesDropdown.AddOptions(GameNamesFromFolders); 
+            List<string> gameNames = new();
+            foreach (string gameName in GameNamesFromFolders.Keys)
+            {
+                gameNames.Add(gameName);
+            }
+            gameNamesDropdown.AddOptions(gameNames); 
         }
         else { print("Game Name Loading Error - Game Names Not Loaded"); }
     }
@@ -97,7 +102,7 @@ public class GameSelectManager : MonoBehaviour
         string gamesAddedText = "";
         foreach (TMP_Text gameName in gamesAdded)
         {
-            gamesAddedText += gameName.text + ",";
+            gamesAddedText += GameNamesFromFolders[gameName.text] + ",";
         }
 
         File.WriteAllText(Application.dataPath + GameNamesFilePath + GameNamesTextFileName, gamesAddedText);
@@ -114,19 +119,37 @@ public class GameSelectManager : MonoBehaviour
         //gameNamesDropdown.ClearOptions();
         gameNamesDropdown.options.Clear();
         GameNamesFromFolders.Clear();
-        if (LoadGameNames()) { gameNamesDropdown.AddOptions(GameNamesFromFolders); }
+        if (LoadGameNames())
+        {
+            List<string> gameNames = new();
+            foreach (string gameName in GameNamesFromFolders.Keys)
+            {
+                gameNames.Add(gameName);
+            }
+            gameNamesDropdown.AddOptions(gameNames);
+        }
         else { print("Game Name Loading Error - Game Names Not Loaded"); }
     }
-
+    public void PressCreatePack()
+    {
+        SceneManager.LoadScene(2);
+    }
 
     // File Loading Section
     bool LoadGameNames()
     {
-        GameNamesFromFolders = new List<string>();
-        DirectoryInfo dirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath);
+        GameNamesFromFolders = new();
+        DirectoryInfo dirInfoPath = new(Application.dataPath + GameNamesFilePath);
         DirectoryInfo[] gameNames = dirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
         if (gameNames.Length == 0) return false;
-        foreach (DirectoryInfo gameName in gameNames) { if (Directory.Exists(gameName.FullName)) { GameNamesFromFolders.Add(gameName.Name.Substring(0, gameName.Name.Length)); /*print(gameName.Name);*/ } };
+        foreach (DirectoryInfo gameName in gameNames)
+        {
+            if (Directory.Exists(gameName.FullName))
+            {
+                //GameNamesFromFolders.Add(gameName.Name.Substring(0, gameName.Name.Length)); /*print(gameName.Name);*/
+                GameNamesFromFolders.Add(GetGameName(gameName.FullName), gameName.Name); // Changed This Recently
+            }
+        };
 
         return true;
     }
@@ -144,11 +167,11 @@ public class GameSelectManager : MonoBehaviour
         {
             if (gameName == noGameAddedText) continue;
             //print("Zip Folder: " + GameNamesFilePath + "/" + gameName.text);
-            DirectoryInfo dirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + gameName.text);
+            DirectoryInfo dirInfoPath = new(Application.dataPath + GameNamesFilePath + "/" + gameName.text);
             DirectoryInfo[] gameFolders = dirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
             if (gameFolders.Length == 0) return false;
 
-            foreach (DirectoryInfo folder in gameFolders) { SubFoldersFromFolders.Add(folder.Name.Substring(0, folder.Name.Length)); /*print(gameName.Name);*/ };
+            foreach (DirectoryInfo folder in gameFolders) { SubFoldersFromFolders.Add(folder.Name); }; // Changed This Recently
         }
         //print(dirInfoPath.FullName);
 
@@ -163,7 +186,7 @@ public class GameSelectManager : MonoBehaviour
             return new List<string>();
         }
         
-        List<string> stringsList = new List<string>();
+        List<string> stringsList = new();
 
         bool hasDelim = fullString.Contains(delimiter);
         if (hasDelim)
@@ -171,18 +194,10 @@ public class GameSelectManager : MonoBehaviour
             string[] tempStringArr = fullString.Split(delimiter);
             foreach (string str in tempStringArr)
             {
-                if (str.EndsWith("\n"))
-                {
-                    stringsList.Add(str.Substring(0, str.Length - 1));
-                }
-                else if (str.EndsWith("\r"))
-                {
-                    stringsList.Add(str.Substring(0, str.Length - 1));
-                }
+                if (str.EndsWith("\n") || str.EndsWith("\r"))
+                    stringsList.Add(str[..^1]);
                 else if (str.EndsWith("\r\n"))
-                {
-                    stringsList.Add(str.Substring(0, str.Length - 2));
-                }
+                    stringsList.Add(str[..^2]);
                 else
                     stringsList.Add(str);
             }
@@ -193,5 +208,37 @@ public class GameSelectManager : MonoBehaviour
         }
 
         return stringsList;
+    }
+
+    private string GetGameName(string gameFolderPath)
+    {
+        string subConfigString = "";
+        FileInfo subConfigFile = new(gameFolderPath + "/" + "cfg");
+        if (!subConfigFile.Exists) return "No Config File Found";
+        if (subConfigFile.Exists)
+        {
+            FileStream configFileStream = subConfigFile.OpenRead();
+            StreamReader configFileReader = new(configFileStream);
+            subConfigString = configFileReader.ReadToEnd();
+            configFileReader.Close();
+        }
+
+        List<string> subCFGStringsEnter = SeperateStrings(subConfigString);
+        if (subCFGStringsEnter.Count <= 0) return "Config File Empty";
+
+        foreach (string stringEnter in subCFGStringsEnter)
+        {
+            if (stringEnter.Contains("name"))
+            {
+                List<string> nameStrings = SeperateStrings(stringEnter, '=');
+                if (nameStrings.Count <= 0) return "No Names Found";
+                if (nameStrings.Count > 1)
+                {
+                    return nameStrings[1];
+                }
+            }
+        }
+
+        return "End of GetGameName - No Name Found";
     }
 }

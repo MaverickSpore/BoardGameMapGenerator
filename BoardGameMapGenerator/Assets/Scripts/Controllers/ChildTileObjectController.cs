@@ -14,6 +14,7 @@ public class ChildTileObjectController : MonoBehaviour
 
     int current;
     int max;
+    int singleMax;
     public void SetImage(Sprite newImage, string imageName = "DefaultName")
     {
         currentImage.sprite = newImage;
@@ -43,9 +44,21 @@ public class ChildTileObjectController : MonoBehaviour
             this.max = max;
         countText.text = this.current + " / " + this.max;
     }
+    public void SetSingleMax(int max)
+    {
+        singleMax = max;
+    }
+    public int GetSingleMax()
+    {
+        return singleMax;
+    }
     public int GetCurrent()
     {
         return current;
+    }
+    public int GetMax()
+    {
+        return max;
     }
     public int AddToCurrent(int add)
     {
@@ -73,14 +86,12 @@ public class ChildTileObjectController : MonoBehaviour
     }
     public void AddToTilesPaired(ChildTileObjectController tile)
     {
-        if (tilesPaired == null)
-            tilesPaired = new List<ChildTileObjectController>();
+        tilesPaired ??= new List<ChildTileObjectController>();
         tilesPaired.Add(tile);
     }
     public List<ChildTileObjectController> GetTilesPaired()
     {
-        if (tilesPaired == null)
-            tilesPaired = new List<ChildTileObjectController>();
+        tilesPaired ??= new List<ChildTileObjectController>();
         return tilesPaired;
     }
 }

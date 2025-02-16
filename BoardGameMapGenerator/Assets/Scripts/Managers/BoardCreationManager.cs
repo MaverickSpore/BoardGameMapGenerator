@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TMPro;
 using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEditor;
@@ -27,10 +28,10 @@ public class BoardCreationManager : MonoBehaviour
 
 
 
-    string GameNamesFilePath = "/GameBoardSets/";
-    string GameNamesTextFileName = "SelectedGameNames.txt";
-    string MapSaveFilePath = "/SavedMaps/";
-    public List<string> GameNamesFromFolders;
+    readonly public string GameNamesFilePath = "/GameBoardSets/";
+    readonly public string GameNamesTextFileName = "SelectedGameNames.txt";
+    readonly string MapSaveFilePath = "/SavedMaps/";
+    public List<string> GameNamesFromFile;
     public List<List<string>> SubFoldersFromFolders;
 
 
@@ -38,15 +39,13 @@ public class BoardCreationManager : MonoBehaviour
     Dictionary<string, ChildTileObjectController> SelectableTiles;
 
 
-    List<GameObject> boardPieces = new List<GameObject>();
+    List<GameObject> boardPieces = new();
 
     //public bool pieceSelected;
     ChildTileObjectController selectedPiece;
     TileObjectPlacedController selectedTile;
 
     bool ableToPlace;
-    bool isPlacedTileSelected;
-    bool areTilesLocked;
 
     float gridSize;
 
@@ -67,9 +66,8 @@ public class BoardCreationManager : MonoBehaviour
     {
         instance = this;
         //pieceSelected = false;
-        isPlacedTileSelected = false;
-        GamesList = new List<ExpandableListController>();
-        SelectableTiles = new Dictionary<string, ChildTileObjectController>();
+        GamesList = new();
+        SelectableTiles = new();
         gridSize = 32;
 
         //Button newMarker = Instantiate(locationMarker, this.transform);
@@ -103,7 +101,7 @@ public class BoardCreationManager : MonoBehaviour
                     Vector3 mousePos = Input.mousePosition;
                     Sprite selectedSprite = selectedPiece.GetImage();
 
-                    if (isPlacedTileSelected == true && selectedTile != null && selectedTile.GetHovered() && selectedSprite == selectedTile.GetSprite())
+                    if (selectedTile != null && selectedTile.GetHovered() && selectedSprite == selectedTile.GetSprite())
                         return;
                     //mousePos.x -= (mousePos.x % (selectedSprite.rect.width / 2.0f)) - (selectedSprite.rect.width / 4.0f);
                     //mousePos.y -= (mousePos.y % (selectedSprite.rect.height / 2.0f)) - (selectedSprite.rect.height / 4.0f);
@@ -154,13 +152,13 @@ public class BoardCreationManager : MonoBehaviour
         }
     }
     bool GetGameNames()
-    { 
-        GameNamesFromFolders = new List<string>();
+    {
+        GameNamesFromFile = new List<string>();
         string gameNamesText = File.ReadAllText(Application.dataPath + GameNamesFilePath + GameNamesTextFileName);
-        if (gameNamesText.Length <= 0) { return false; }
+        if (gameNamesText.Length <= 0) { print("Game Names Was Empty"); return false; }
 
-        GameNamesFromFolders.AddRange(gameNamesText.Split(","));
-        GameNamesFromFolders.RemoveAt(GameNamesFromFolders.Count - 1);
+        GameNamesFromFile.AddRange(gameNamesText.Split(","));
+        GameNamesFromFile.RemoveAt(GameNamesFromFile.Count - 1);
 
         return true;
     }
@@ -170,9 +168,9 @@ public class BoardCreationManager : MonoBehaviour
         bool result = true;
 
 
-        foreach (string gameName in GameNamesFromFolders)
+        foreach (string gameName in GameNamesFromFile)
         {
-            DirectoryInfo dirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/");
+            DirectoryInfo dirInfoPath = new(Application.dataPath + GameNamesFilePath + "/" + gameName + "/");
             FileInfo[] gameCFG = dirInfoPath.GetFiles("cfg", SearchOption.TopDirectoryOnly);
 
             if (gameCFG.Length != 1)
@@ -182,13 +180,13 @@ public class BoardCreationManager : MonoBehaviour
 
             // Get cfg String from folder
             string configString = string.Empty;
-            FileInfo configFile = new FileInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/" + "cfg");
+            FileInfo configFile = new(Application.dataPath + GameNamesFilePath + "/" + gameName + "/" + "cfg");
             if (configFile.Exists)
             {
                 FileStream configFileStream = configFile.OpenRead();
-                StreamReader configFileReader = new StreamReader(configFileStream);
+                StreamReader configFileReader = new(configFileStream);
                 configString = configFileReader.ReadToEnd();
-
+                configFileStream.Close();
                 //print(configFile.FullName + ": " + configString);
             }
             // cfg String from folder has been gotten
@@ -207,9 +205,18 @@ public class BoardCreationManager : MonoBehaviour
                     {
                         List<string> CFGNameStrings = SeperateStrings(CFGString, '=');
                         if (CFGNameStrings[1] == null) { continue; };
+                        ExpandableListController OldListTest = IsGameNameInList(CFGNameStrings[1]);
+                        if (OldListTest != null)
+                        {
+                            RecursiveTileMaxIncrease(OldListTest);
+                            OldListTest.AddToCount(1);
+                            continue;
+                        }
                         ExpandableListController newExpandableList = Instantiate(ExpandableListTemplate, TilesListStartingLocation.transform);
-                        newExpandableList.SetListName(CFGNameStrings[1]);
                         newExpandableList.Init();
+                        newExpandableList.SetListName(CFGNameStrings[1]);
+                        newExpandableList.SetFileName(gameName);
+                        newExpandableList.SetCount(1);
                         float currentYOffset = 50;
                         if (GamesList.Count > 0)
                         {
@@ -232,6 +239,40 @@ public class BoardCreationManager : MonoBehaviour
 
         return result;
     }
+    private ExpandableListController IsGameNameInList(string gameName)
+    {
+        foreach (ExpandableListController game in GamesList)
+        {
+            if (game.GetListName() == gameName)
+            {
+                return game;
+            }
+        }
+        return null;
+    }
+    private void RecursiveTileMaxIncrease(ExpandableListController expList)
+    {
+        for (int i = expList.GetChildList().Count - 1; i >= 0; i--)
+        {
+            RecursiveTileMaxIncrease(expList.GetChildList()[i]);
+        }
+        for (int i = expList.GetChildTiles().Count - 1; i >= 0; i--)
+        {
+            expList.GetChildTiles()[i].SetCountText(expList.GetChildTiles()[i].GetCurrent() + expList.GetChildTiles()[i].GetSingleMax(), expList.GetChildTiles()[i].GetMax() + expList.GetChildTiles()[i].GetSingleMax());
+        }
+    }
+    private void RecursiveTileMaxReset(ExpandableListController expList)
+    {
+        for (int i = expList.GetChildList().Count - 1; i >= 0; i--)
+        {
+            RecursiveTileMaxReset(expList.GetChildList()[i]);
+        }
+        for (int i = expList.GetChildTiles().Count - 1; i >= 0; i--)
+        {
+            int relativeCurrent = expList.GetChildTiles()[i].GetMax() - expList.GetChildTiles()[i].GetCurrent();
+            expList.GetChildTiles()[i].SetCountText(expList.GetChildTiles()[i].GetSingleMax() - relativeCurrent, expList.GetChildTiles()[i].GetSingleMax());
+        }
+    }
     bool SetUpSubObjects(ExpandableListController expandableListParent, string gameName = "Default Game Name")
     {
         bool result = true;
@@ -244,7 +285,7 @@ public class BoardCreationManager : MonoBehaviour
 
 
 
-        DirectoryInfo subDirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + gameName + "/");
+        DirectoryInfo subDirInfoPath = new(Application.dataPath + GameNamesFilePath + "/" + gameName + "/");
         DirectoryInfo[] subFoldersDirInfo = subDirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
         if (subFoldersDirInfo.Length == 0) return false;
         // subFoldersDirInfo should be all subfolders: Tiles, Doors, Cars, Other Tokens
@@ -265,13 +306,14 @@ public class BoardCreationManager : MonoBehaviour
 
             // Get cfg String from folder
             string subConfigString = string.Empty;
-            FileInfo subConfigFile = new FileInfo(subFolder.FullName + "/" + "cfg");
+            FileInfo subConfigFile = new(subFolder.FullName + "/" + "cfg");
             if (subConfigFile.Exists)
             {
                 FileStream configFileStream = subConfigFile.OpenRead();
-                StreamReader configFileReader = new StreamReader(configFileStream);
+                StreamReader configFileReader = new(configFileStream);
                 subConfigString = configFileReader.ReadToEnd();
 
+                configFileStream.Close();
                 //print(configFile.FullName + ": " + configString);
             }
             // cfg String from folder has been gotten
@@ -333,18 +375,19 @@ public class BoardCreationManager : MonoBehaviour
 
         // Get cfg String from folder
         string subConfigString = string.Empty;
-        FileInfo subConfigFile = new FileInfo(subFolder.FullName + "/" + "cfg");
+        FileInfo subConfigFile = new(subFolder.FullName + "/" + "cfg");
         if (subConfigFile.Exists)
         {
             FileStream configFileStream = subConfigFile.OpenRead();
-            StreamReader configFileReader = new StreamReader(configFileStream);
+            StreamReader configFileReader = new(configFileStream);
             subConfigString = configFileReader.ReadToEnd();
+            configFileReader.Close();
         }
         // cfg String from folder has been gotten
 
         List<string> subCFGStringsEnter = SeperateStrings(subConfigString);
-        List<string> subCFGStringsPair = new List<string>();
-        Dictionary<string, ChildTileObjectController> tileNameDictionary = new Dictionary<string, ChildTileObjectController>();
+        List<string> subCFGStringsPair = new();
+        Dictionary<string, ChildTileObjectController> tileNameDictionary = new();
 
         if (subCFGStringsEnter.Count > 0)
         {
@@ -382,9 +425,8 @@ public class BoardCreationManager : MonoBehaviour
                             
                             expandableListParent.AddChildSprite(ref newSprite, tileCombo[1], tileFile.Name);
 
-                            tileNameDictionary.Add(tileFile.Name, expandableListParent.GetChildTiles()[expandableListParent.GetChildTiles().Count - 1]);
-                            SelectableTiles.Add(tileFile.Name, expandableListParent.GetChildTiles()[expandableListParent.GetChildTiles().Count - 1]);
-                            
+                            tileNameDictionary.Add(tileFile.Name, expandableListParent.GetChildTiles()[^1]);
+                            SelectableTiles.Add(tileFile.Name, expandableListParent.GetChildTiles()[^1]);
                         }
 
                     }
@@ -397,7 +439,7 @@ public class BoardCreationManager : MonoBehaviour
             }
         }
 
-        Dictionary<string, string> tilePairs = new Dictionary<string, string>();
+        Dictionary<string, string> tilePairs = new();
         // Separate the pairs into individual strings using ; and : as delimiters
         foreach (string subCFGString in subCFGStringsPair)
         {
@@ -441,26 +483,27 @@ public class BoardCreationManager : MonoBehaviour
 
         return result;
     }
-    
+    /*LoadObjectsInSubFolders
     List<Sprite> LoadObjectsInSubFolder(string Game, string Category)
     {
-        List<Sprite> result = new List<Sprite>();
+        List<Sprite> result = new();
 
-        DirectoryInfo dirInfoPath = new DirectoryInfo(Application.dataPath + GameNamesFilePath + "/" + Game + "/" + Category + "/");
+        DirectoryInfo dirInfoPath = new(Application.dataPath + GameNamesFilePath + "/" + Game + "/" + Category + "/");
         FileInfo[] folderObjects = dirInfoPath.GetFiles("*.jpg", SearchOption.AllDirectories);
-        if (folderObjects.Length == 0) return new List<Sprite>();
+        if (folderObjects.Length == 0) return new ();
 
         foreach (FileInfo folderObject in folderObjects) 
         {
             Sprite newSprite;
             Texture2D spriteTexture = LoadTexture(folderObject.FullName);
-            newSprite = Sprite.Create(spriteTexture, new Rect(0, 0, spriteTexture.width, spriteTexture.height), new Vector2(0, 0));
+            newSprite = Sprite.Create(spriteTexture, new(0, 0, spriteTexture.width, spriteTexture.height), new Vector2(0, 0));
             result.Add(newSprite); 
-            /*print(gameName.Name);*/ 
+            //print(gameName.Name);
         };
         
         return result;
     }
+    */
     Texture2D LoadTexture(string FilePath)
     {
 
@@ -498,7 +541,7 @@ public class BoardCreationManager : MonoBehaviour
     {
         if (GamesList.Count <= 0) return;
 
-        float currentYOffset = GamesList[0].transform.position.y;
+        float currentYOffset = CategoriesContentArea.transform.position.y - 50;
         float contentAreaHeight = 0;
 
         foreach (ExpandableListController game in GamesList)
@@ -543,17 +586,134 @@ public class BoardCreationManager : MonoBehaviour
     }
     public void PlacedTileDeselected()
     {
-        isPlacedTileSelected = false;
         selectedTile = null;
     }
     public void PlacedTileSelected(TileObjectPlacedController selectedTile)
     {
-        isPlacedTileSelected = true;
         this.selectedTile = selectedTile;
     }
-    public void ToggleTileLock()
+
+    public void AddToExpandableLists(string gameName)
     {
-        areTilesLocked = !areTilesLocked;
+        ExpandableListController OldListTest = IsGameNameInList(GetGameName(Application.dataPath + GameNamesFilePath + gameName));
+        if (OldListTest != null)
+        {
+            RecursiveTileMaxIncrease(OldListTest);
+            OldListTest.AddToCount(1);
+
+            //GameNamesFromFile.Add(gameName);
+            return;
+        }
+        
+        ExpandableListController newExpandableList = Instantiate(ExpandableListTemplate, TilesListStartingLocation.transform); 
+        newExpandableList.Init();
+        newExpandableList.SetListName(GetGameName(Application.dataPath + GameNamesFilePath + gameName));
+        newExpandableList.SetFileName(gameName);
+        float currentYOffset = 50;
+        if (GamesList.Count > 0)
+        {
+            currentYOffset = GamesList[0].transform.position.y;
+        }
+        foreach (ExpandableListController game in GamesList)
+        {
+            currentYOffset += game.GetListHeight();
+        }
+        newExpandableList.SetYOffset(currentYOffset);
+        GamesList.Add(newExpandableList);
+
+        if (newExpandableList != null && SetUpSubObjects(newExpandableList, gameName)) { newExpandableList.PressExpandButton(0); }
+        else { }
+    }
+    public void UpdateExpandableLists()
+    {
+        if (GamesList.Count > 0)
+        {
+            for (int i = GamesList.Count - 1; i >= 0; i--)
+            {
+                GamesList[i].PressExpandButton(0);
+                if (GameNamesFromFile.Contains(GamesList[i].GetFileName()))
+                {
+                    GamesList[i].SetCount(1);
+                    RecursiveTileMaxReset(GamesList[i]);
+                }
+                else
+                {
+                    RecursiveExpandableListDeletion(GamesList[i]);
+                    GamesList.RemoveAt(i);
+                }
+            }
+
+            List<string> gameNames = new();
+            List<string> gameNamesCopy = new();
+            gameNamesCopy.AddRange(GameNamesFromFile);
+            for (int i = 0; i < gameNamesCopy.Count; i++)
+            {
+                if (gameNames.Contains(gameNamesCopy[i]))
+                {
+                    AddToExpandableLists(gameNamesCopy[i]);
+                    //print("Game: " + OldListTest.GetListName() + " - Count: " + OldListTest.GetCount());
+                }
+                else
+                {
+                    gameNames.Add(gameNamesCopy[i]);
+                }
+            }
+        }
+        else
+        {
+            List<string> gameNames = new();
+            List<string> gameNamesCopy = new();
+            gameNamesCopy.AddRange(GameNamesFromFile);
+            for (int i = 0; i < gameNamesCopy.Count; i++)
+            {
+                if (gameNames.Contains(gameNamesCopy[i]))
+                {
+                    AddToExpandableLists(gameNamesCopy[i]);
+                    //print("Game: " + OldListTest.GetListName() + " - Count: " + OldListTest.GetCount());
+                }
+                else
+                {
+                    gameNames.Add(gameNamesCopy[i]);
+                    AddToExpandableLists(gameNamesCopy[i]);
+                }
+            }
+        }
+
+        AdjustsGamesListYOffset();
+    }
+    public void CollapseAllLists()
+    {
+        foreach (ExpandableListController game in GamesList)
+        {
+            game.PressExpandButton(0);
+        }
+    }
+    public void ExpandAllLists()
+    {
+        foreach (ExpandableListController game in GamesList)
+        {
+            game.PressExpandButton(1);
+        }
+    }
+    private void RecursiveExpandableListDeletion(ExpandableListController expList)
+    {
+        for(int i = expList.GetChildList().Count - 1; i >= 0; i--)
+        {
+            RecursiveExpandableListDeletion(expList.GetChildList()[i]);
+        }
+        for(int i = expList.GetChildTiles().Count - 1; i >= 0; i--)
+        {
+            if (SelectableTiles.ContainsKey(expList.GetChildTiles()[i].GetSpriteName()))
+            {
+                SelectableTiles.Remove(expList.GetChildTiles()[i].GetSpriteName());
+            }
+            Destroy(expList.GetChildTiles()[i].gameObject);
+        }
+        Destroy(expList.gameObject);
+    }
+    public void AddToGameNamesList(string gameName)
+    {
+        GameNamesFromFile.Add(gameName);
     }
 
     public void PressNewMap()
@@ -582,10 +742,6 @@ public class BoardCreationManager : MonoBehaviour
     public float GetGridSize()
     {
         return gridSize;
-    }
-    public bool GetTilesLocked()
-    {
-        return areTilesLocked;
     }
     public Mode GetMode()
     {
@@ -635,7 +791,7 @@ public class BoardCreationManager : MonoBehaviour
             return new List<string>();
         }
 
-        List<string> stringsList = new List<string>();
+        List<string> stringsList = new();
 
         bool hasDelim = fullString.Contains(delimiter);
         if (hasDelim)
@@ -643,18 +799,10 @@ public class BoardCreationManager : MonoBehaviour
             string[] tempStringArr = fullString.Split(delimiter);
             foreach (string str in tempStringArr)
             {
-                if (str.EndsWith("\n"))
-                {
-                    stringsList.Add(str.Substring(0, str.Length - 1));
-                }
-                else if (str.EndsWith("\r"))
-                {
-                    stringsList.Add(str.Substring(0, str.Length - 1));
-                }
+                if (str.EndsWith("\n") || str.EndsWith("\r"))
+                    stringsList.Add(str[..^1]);
                 else if (str.EndsWith("\r\n"))
-                {
-                    stringsList.Add(str.Substring(0, str.Length - 2));
-                }
+                    stringsList.Add(str[..^2]);
                 else
                     stringsList.Add(str);
             }
@@ -666,11 +814,45 @@ public class BoardCreationManager : MonoBehaviour
 
         return stringsList;
     }
+    public string GetGameName(string gameFolderPath)
+    {
+        string subConfigString = "";
+        FileInfo subConfigFile = new(gameFolderPath + "/" + "cfg");
+
+        if (!subConfigFile.Exists) { return "No Config File Found"; }
+
+        if (subConfigFile.Exists)
+        {
+            FileStream configFileStream = subConfigFile.OpenRead();
+            StreamReader configFileReader = new(configFileStream);
+            subConfigString = configFileReader.ReadToEnd();
+            configFileReader.Close();
+        }
+
+        List<string> subCFGStringsEnter = SeperateStrings(subConfigString);
+        if (subCFGStringsEnter.Count <= 0) return "Config File Empty";
+
+        foreach (string stringEnter in subCFGStringsEnter)
+        {
+            if (stringEnter.Contains("name"))
+            {
+                List<string> nameStrings = SeperateStrings(stringEnter, '=');
+                if (nameStrings.Count <= 0) return "No Names Found";
+                if (nameStrings.Count > 1)
+                {
+                    return nameStrings[1];
+                }
+            }
+        }
+
+        return "End of GetGameName - No Name Found";
+    }
 
 
     // Menu Bar Functions
     private void NewMap()
     {
+        EditGamesListManager.instance.gameObject.SetActive(false);
         while (boardPieces.Count > 0)
         {
             boardPieces[0].GetComponent<TileObjectPlacedController>().PressDeleteTile(); // TODO: Add new tiles to board pieces in LoadMap function
@@ -693,7 +875,7 @@ public class BoardCreationManager : MonoBehaviour
         if (path.Length != 0)
         {
             // save the information from GamesList and boardPieces to the file using File.WriteAllText
-            List<GameObject> GamesListObjectList = new List<GameObject>();
+            List<GameObject> GamesListObjectList = new();
             foreach (ExpandableListController game in GamesList)
             {
                 GamesListObjectList.Add(game.gameObject);
@@ -760,14 +942,14 @@ public class BoardCreationManager : MonoBehaviour
                         GamesList.RemoveAt(0);
                     }
                     GamesList = new List<ExpandableListController>();
-                    GameNamesFromFolders.Clear();
+                    GameNamesFromFile.Clear();
                     List<string> gamesList = SeperateStrings(mapLoad, '=');
                     if (gamesList.Count > 0)
                     {
 
-                        GameNamesFromFolders.AddRange(SeperateStrings(gamesList[1], ','));// gamesList[1].Split(","));
-                        GameNamesFromFolders.RemoveAt(GameNamesFromFolders.Count - 1);
-                        if (GameNamesFromFolders.Count > 0)
+                        GameNamesFromFile.AddRange(SeperateStrings(gamesList[1], ','));// gamesList[1].Split(","));
+                        GameNamesFromFile.RemoveAt(GameNamesFromFile.Count - 1);
+                        if (GameNamesFromFile.Count > 0)
                         {
                             SetUpObjectsList();
                             //ReloadGamesList();
@@ -800,13 +982,13 @@ public class BoardCreationManager : MonoBehaviour
     }
     private void AddPack()
     {
-
+        EditGamesListManager.instance.PressAddMenu();
     }
     private void RemovePack()
     {
-
+        EditGamesListManager.instance.PressRemoveMenu();
     }
-
+    /*ReloadGamesList
     private void ReloadGamesList()
     {
         // place all the games back on the list based on the newly changed GamesList list
@@ -817,6 +999,7 @@ public class BoardCreationManager : MonoBehaviour
             GamesList.Add(Instantiate(game, game.transform.position, game.transform.rotation, CategoriesContentArea.transform));
         }
     }
+    */
     private void ReloadBoardPiecess()
     {
         // place all the board pieces back on the board based on the newly changed boardPieces list
@@ -845,7 +1028,7 @@ public class BoardCreationManager : MonoBehaviour
     }
     private List<GameObject> ConvertStringToBoardPieces(string BoardPiecesString)
     {
-        List<GameObject> newBoardPieces = new List<GameObject>();
+        List<GameObject> newBoardPieces = new();
 
         // for each loop based on BardPiecesString speparated by / delimiter
         List<string> boardPiecesList = SeperateStrings(BoardPiecesString, '/');
