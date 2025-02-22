@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 public class PackImportManager : MonoBehaviour
 {
-    public PackImportManager instance;
+    public static PackImportManager instance;
 
     [SerializeField] RectTransform ContentArea;
     [SerializeField] Button ImportZipButton;
@@ -19,11 +19,18 @@ public class PackImportManager : MonoBehaviour
     List<TMP_Text> FoldersList;
 
     public string CurrentPath;
-    string GameBoardSetPath = Application.dataPath + "/GameBoardSets/";
+    readonly string GameBoardSetPath = Application.dataPath + "/GameBoardSets/";
 
     private void Start()
     {
-        instance = this;
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(this);
+        }
         this.gameObject.SetActive(false);
         FoldersList = new List<TMP_Text>();
         CurrentPath = GameBoardSetPath;
@@ -46,7 +53,7 @@ public class PackImportManager : MonoBehaviour
                 newFolder.GetComponent<ImportFolderController>().SetFolder();
                 FoldersList.Add(newFolder);
             }
-
+            NoFoldersFound.gameObject.SetActive(false);
         }
         DirectoryInfo dirInfoZipPath = new(CurrentPath);
         FileInfo[] zipFolders = dirInfoZipPath.GetFiles("*.zip", SearchOption.TopDirectoryOnly);
@@ -60,10 +67,8 @@ public class PackImportManager : MonoBehaviour
                 newFolder.GetComponent<ImportFolderController>().SetZip();
                 FoldersList.Add(newFolder);
             }
+            NoFoldersFound.gameObject.SetActive(false);
         }
-
-
-        NoFoldersFound.gameObject.SetActive(false);
         AdjustFoldersList();
     }
     private void ResetFoldersList()
@@ -143,6 +148,9 @@ public class PackImportManager : MonoBehaviour
     }
     private bool IsBuildableFolder(string zipPath)
     {
+        string test = zipPath;
+        if (File.Exists(test)) { }
+
         // for later user feedback
         return true;
     }

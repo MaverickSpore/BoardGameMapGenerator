@@ -31,7 +31,14 @@ public class GameSelectManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        instance = this;
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(this);
+        }
         GameSelected = 0;
         gamesAdded = new List<TMP_Text>() { noGameAddedText };
         gamesAdded[0].GetComponent<AddedGameController>().HideButton();

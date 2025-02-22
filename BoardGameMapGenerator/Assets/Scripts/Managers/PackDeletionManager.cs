@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 public class PackDeletionManager : MonoBehaviour
 {
-    public PackDeletionManager instance;
+    public static PackDeletionManager instance;
 
     [SerializeField] RectTransform ContentArea;
     [SerializeField] Button DeletePacksButton;
@@ -16,12 +16,19 @@ public class PackDeletionManager : MonoBehaviour
 
     List<TMP_Text> FoldersList;
 
-    string GameBoardSetPath = Application.dataPath + "/GameBoardSets/";
+    readonly string GameBoardSetPath = Application.dataPath + "/GameBoardSets/";
 
     // Start is called before the first frame update
     void Start()
     {
-        instance = this;
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(this);
+        }
         this.gameObject.SetActive(false);
         FoldersList = new List<TMP_Text>();
     }
@@ -44,19 +51,22 @@ public class PackDeletionManager : MonoBehaviour
                 newFolder.GetComponent<DeleteFolderController>().SetFolder();
                 FoldersList.Add(newFolder);
             }
-
+            NoFoldersFound.gameObject.SetActive(false);
         }
 
-        NoFoldersFound.gameObject.SetActive(false);
         AdjustFoldersList();
     }
     private void ResetFoldersList()
     {
-        foreach (TMP_Text folder in FoldersList)
+        FoldersList ??= new List<TMP_Text>();
+        if (FoldersList.Count > 0)
         {
-            Destroy(folder.gameObject);
+            foreach (TMP_Text folder in FoldersList)
+            {
+                Destroy(folder.gameObject);
+            }
+            FoldersList.Clear();
         }
-        FoldersList.Clear();
         NoFoldersFound.gameObject.SetActive(true);
     }
     private void ReloadFoldersList()

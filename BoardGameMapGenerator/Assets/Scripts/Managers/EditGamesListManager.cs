@@ -23,7 +23,14 @@ public class EditGamesListManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        instance = this;
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(this);
+        }
 
         GameNamesFromFolders = new Dictionary<string, string>();
         BoardCreationGameNames = new List<string>();

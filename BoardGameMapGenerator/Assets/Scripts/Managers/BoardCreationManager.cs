@@ -64,7 +64,14 @@ public class BoardCreationManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        instance = this;
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(this);
+        }
         //pieceSelected = false;
         GamesList = new();
         SelectableTiles = new();
@@ -549,21 +556,26 @@ public class BoardCreationManager : MonoBehaviour
             game.SetYOffset(currentYOffset);
 
             float currentSubYOffset = currentYOffset - game.GetTextHeight();
+            float adjustedAmount = 0;
             foreach (ExpandableListController subSection in game.GetChildList())
             {
                 if (subSection == null) continue;
-
                 subSection.SetYOffset(currentSubYOffset);
-                currentSubYOffset -= subSection.GetListHeight() + 25;
-                contentAreaHeight += subSection.GetListHeight() + 25;
-                currentYOffset -= 25;
+                float subListHeight = subSection.GetListHeight();
+                    currentSubYOffset -= subSection.GetListHeight();
+                    contentAreaHeight += subSection.GetListHeight();
+                if (subListHeight > subSection.GetTextHeight())
+                {
+                    adjustedAmount = 25;
+                }
+                //currentYOffset -= subSection.GetListHeight();
             }
 
-            currentYOffset -= game.GetListHeight();
-            contentAreaHeight += game.GetTextHeight();
+            currentYOffset -= game.GetListHeight() + adjustedAmount;
+            contentAreaHeight += game.GetTextHeight() + adjustedAmount;
         }
 
-        CategoriesContentArea.sizeDelta = new Vector2(CategoriesContentArea.sizeDelta.x, contentAreaHeight + 100);
+        CategoriesContentArea.sizeDelta = new Vector2(CategoriesContentArea.sizeDelta.x, contentAreaHeight/* + 100*/);
     }
 
     public void SetPieceSelected(ChildTileObjectController selected)

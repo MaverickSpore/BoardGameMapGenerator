@@ -50,31 +50,29 @@ public class ExpandableListController : MonoBehaviour
         childTiles = new List<ChildTileObjectController>();
         FileName = "";
         ListCount = 1;
-        PressExpandButton();
+        PressExpandButton(0);
     }
     public void PressExpandButton(int mode = -1)
     {
         if (expandButtonText.text == ">" || mode == 1)
         {
             expandButtonText.text = "v";
-
-            BoardCreationManager.instance.AdjustsGamesListYOffset();
             ExpandContent();
         }
         else if (mode == 0)
         {
             expandButtonText.text = ">";
             CollapseContent();
-
-            BoardCreationManager.instance.AdjustsGamesListYOffset();
         }
         else
         {
             expandButtonText.text = ">";
             CollapseContent();
-
-            BoardCreationManager.instance.AdjustsGamesListYOffset();
         }
+        if (BoardCreationManager.instance != null)
+            BoardCreationManager.instance.AdjustsGamesListYOffset();
+        if (PackCreationManager.instance != null)
+            PackCreationManager.instance.AdjustExpandableListOffsets();
     }
     public GameObject GetContentArea()
     {
@@ -99,6 +97,7 @@ public class ExpandableListController : MonoBehaviour
     public void SetYOffset(float offset)
     {
         gameObject.transform.position = new Vector3 (gameObject.transform.position.x, offset, gameObject.transform.position.z);
+        AdjustChildTiles();
     }
     public float GetTextHeight()
     {
@@ -151,11 +150,38 @@ public class ExpandableListController : MonoBehaviour
 
         AddChildTile(ref newTile);
     }
+    public void AddChildSprite(ref Sprite childSprite, float tileWidth, float tileHeight, string spriteName = "DefaultName")
+    {
+        ChildTileObjectController newTile = Instantiate(tileTemplate, content.transform);
+
+        newTile.SetImage(childSprite, spriteName);
+        newTile.SetYOffset(transform.position.y - GetListHeight());
+
+        newTile.SetSizeText(tileWidth, tileHeight);
+        //newTile.SetSingleMax(count);
+
+        AddChildTile(ref newTile);
+    }
 
     void AddChildTile(ref ChildTileObjectController childTile)
     {
         childTiles.Add(childTile);
-        BoardCreationManager.instance.AdjustsGamesListYOffset();
+        if (BoardCreationManager.instance != null)
+            BoardCreationManager.instance.AdjustsGamesListYOffset();
+        if (PackCreationManager.instance != null)
+            PackCreationManager.instance.AdjustExpandableListOffsets();
+    }
+    void AdjustChildTiles()
+    {
+        if (childTiles != null)
+        {
+            float yOffset = transform.position.y - GetTextHeight();
+            foreach (ChildTileObjectController tile in childTiles)
+            {
+                tile.SetYOffset(yOffset);
+                yOffset -= tile.GetHeight();
+            }
+        }
     }
 
 
@@ -177,7 +203,7 @@ public class ExpandableListController : MonoBehaviour
 
     public bool IsExpanded()
     {
-        return expandButtonText.text == "v";
+        return expandButtonText.text == "v" && isActiveAndEnabled;
     }
 
     public List<ChildTileObjectController> GetChildTiles()
