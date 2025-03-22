@@ -74,3 +74,6 @@ crashlytics-build.properties
 /BoardGameMapGenerator/Temp
 /BoardGameMapGenerator/Library
 /BoardGameMapGenerator/[Ll]ibrary
+/BoardGameMapGenerator/Assets/GameBoardSets
+/BoardGameMapGenerator/Assets/Maps
+/BoardGameMapGenerator/Assets/SavedMaps
