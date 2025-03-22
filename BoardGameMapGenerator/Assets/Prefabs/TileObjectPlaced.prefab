@@ -103,7 +103,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5409439688417398700}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -129,9 +129,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainImageLeaveWhite: {fileID: 4450341070523059491}
   currentImage: {fileID: 3856108013794325712}
-  ZForwardButton: {fileID: 0}
-  ZBackButton: {fileID: 0}
   parentTile: {fileID: 0}
+  pairedTile: {fileID: 0}
 --- !u!222 &8250844152396104289
 CanvasRenderer:
   m_ObjectHideFlags: 0

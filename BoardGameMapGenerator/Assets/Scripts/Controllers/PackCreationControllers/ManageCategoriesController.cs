@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ReorderCategoriesController : MonoBehaviour
+public class ManageCategoriesController : MonoBehaviour
 {
+
+    [SerializeField] Button RemoveCategoryButton;
     [SerializeField] Button ReorderUpButton;
     [SerializeField] Button ReorderDownButton;
     public void SetNeither()
@@ -12,19 +14,27 @@ public class ReorderCategoriesController : MonoBehaviour
         ReorderUpButton.gameObject.SetActive(false);
         ReorderDownButton.gameObject.SetActive(false);
     }
-    public void SetBoth()
+    public void SetTop()
+    {
+        ReorderUpButton.gameObject.SetActive(false);
+        ReorderDownButton.gameObject.SetActive(true);
+    }
+    public void SetMiddle()
     {
         ReorderUpButton.gameObject.SetActive(true);
         ReorderDownButton.gameObject.SetActive(true);
     }
-    public void SetUp()
+    public void SetBottom()
     {
         ReorderUpButton.gameObject.SetActive(true);
         ReorderDownButton.gameObject.SetActive(false);
     }
-    public void SetDown()
+    public void SetOther()
     {
-        ReorderUpButton.gameObject.SetActive(false);
-        ReorderDownButton.gameObject.SetActive(true);
+        RemoveCategoryButton.gameObject.SetActive(false);
+    }
+    public void SetFolder()
+    {
+        RemoveCategoryButton.gameObject.SetActive(true);
     }
 }

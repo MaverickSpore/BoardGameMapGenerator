@@ -69,10 +69,8 @@ public class ExpandableListController : MonoBehaviour
             expandButtonText.text = ">";
             CollapseContent();
         }
-        if (BoardCreationManager.instance != null)
-            BoardCreationManager.instance.AdjustsGamesListYOffset();
-        if (PackCreationManager.instance != null)
-            PackCreationManager.instance.AdjustExpandableListOffsets();
+        if (BoardCreationManager.Instance != null)
+            BoardCreationManager.Instance.AdjustsGamesListYOffset();
     }
     public GameObject GetContentArea()
     {
@@ -137,7 +135,7 @@ public class ExpandableListController : MonoBehaviour
         return childLists;
     }
 
-    public void AddChildSprite(ref Sprite childSprite, string tileCount, string spriteName = "DefaultName")
+    public ChildTileObjectController AddChildSprite(ref Sprite childSprite, string tileCount, string spriteName = "DefaultName")
     {
         ChildTileObjectController newTile = Instantiate(tileTemplate, content.transform);
         
@@ -149,8 +147,10 @@ public class ExpandableListController : MonoBehaviour
         newTile.SetSingleMax(count);
 
         AddChildTile(ref newTile);
+
+        return newTile;
     }
-    public void AddChildSprite(ref Sprite childSprite, float tileWidth, float tileHeight, string spriteName = "DefaultName")
+    public ChildTileObjectController AddChildSprite(ref Sprite childSprite, float tileWidth, float tileHeight, string spriteName = "DefaultName")
     {
         ChildTileObjectController newTile = Instantiate(tileTemplate, content.transform);
 
@@ -161,15 +161,15 @@ public class ExpandableListController : MonoBehaviour
         //newTile.SetSingleMax(count);
 
         AddChildTile(ref newTile);
+
+        return newTile;
     }
 
     void AddChildTile(ref ChildTileObjectController childTile)
     {
         childTiles.Add(childTile);
-        if (BoardCreationManager.instance != null)
-            BoardCreationManager.instance.AdjustsGamesListYOffset();
-        if (PackCreationManager.instance != null)
-            PackCreationManager.instance.AdjustExpandableListOffsets();
+        if (BoardCreationManager.Instance != null)
+            BoardCreationManager.Instance.AdjustsGamesListYOffset();
     }
     void AdjustChildTiles()
     {

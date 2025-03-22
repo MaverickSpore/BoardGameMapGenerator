@@ -17,6 +17,7 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
     bool isHovered;
     bool isButtonHovered;
     int currentRotation;
+    int PackNumber;
 
     Vector3 currentLocation;
 
@@ -35,20 +36,22 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
         float imageWidth = newImage.rect.width;
         float imageHeight = newImage.rect.height;
 
-        float gridSize = BoardCreationManager.instance.GetGridSize();
+        float gridSize = BoardCreationManager.Instance.GetGridSize();
         float widthAdjust = imageWidth % gridSize;
         float heightAdjust = imageHeight % gridSize;
-        if (widthAdjust < gridSize / 4)
+        if (widthAdjust < gridSize / 2)
             imageWidth -= widthAdjust;
         else
             imageWidth += gridSize - widthAdjust;
-        if (heightAdjust < gridSize / 4)
+        if (heightAdjust < gridSize / 2)
             imageHeight -= heightAdjust;
         else
             imageHeight += gridSize - heightAdjust;
 
-        currentImage.GetComponent<RectTransform>().sizeDelta = new Vector2(imageWidth, imageHeight);
-        mainImageLeaveWhite.GetComponent<RectTransform>().sizeDelta = new Vector2(imageWidth, imageHeight);
+        //currentImage.GetComponent<RectTransform>().sizeDelta = new Vector2(imageWidth, imageHeight);
+        currentImage.rectTransform.sizeDelta = new Vector2(imageWidth, imageHeight);
+        //mainImageLeaveWhite.GetComponent<RectTransform>().sizeDelta = new Vector2(imageWidth, imageHeight);
+        mainImageLeaveWhite.rectTransform.sizeDelta = new Vector2(imageWidth, imageHeight);
 
         AdjustToGrid();
     }
@@ -58,20 +61,21 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
     }
     public void AdjustToGrid()
     {
-        float gridSize = BoardCreationManager.instance.GetGridSize();
+        float gridSize = BoardCreationManager.Instance.GetGridSize();
         switch (currentRotation)
         {
             case 0:
             case 180:
                 mainImageLeaveWhite.GetComponent<RectTransform>().sizeDelta = new Vector2(currentImage.GetComponent<RectTransform>().sizeDelta.x, currentImage.GetComponent<RectTransform>().sizeDelta.y);
-                transform.position = new Vector2(transform.position.x - ((transform.position.x % (gridSize)) - (gridSize / 4.0f)), transform.position.y - ((transform.position.y % (gridSize)) - (gridSize / 4.0f)));
+                transform.position = new Vector3(transform.position.x - ((transform.position.x % (gridSize)) - (gridSize / 2.0f)), transform.position.y - ((transform.position.y % (gridSize)) - (gridSize / 2.0f)), transform.position.z);
                 break;
             case 90:
             case 270:
                 mainImageLeaveWhite.GetComponent<RectTransform>().sizeDelta = new Vector2(currentImage.GetComponent<RectTransform>().sizeDelta.y, currentImage.GetComponent<RectTransform>().sizeDelta.x);
-                transform.position = new Vector2(transform.position.x - ((transform.position.y % (gridSize)) - (gridSize / 4.0f)), transform.position.y - ((transform.position.x % (gridSize)) - (gridSize / 4.0f)));
+                transform.position = new Vector3(transform.position.x - ((transform.position.y % (gridSize)) - (gridSize / 2.0f)), transform.position.y - ((transform.position.x % (gridSize)) - (gridSize / 2.0f)), transform.position.z);
                 break;
         }
+
     }
 
     public Sprite GetSprite()
@@ -107,12 +111,18 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
     private void Update()
     {
         //if (!BoardCreationManager.instance.GetTilesLocked())
-        if (BoardCreationManager.instance.GetMode() == BoardCreationManager.Mode.Move)
+        if (BoardCreationManager.Instance.GetMode() == BoardCreationManager.Mode.Move)
         {
             if (isDragged)
             {
+                // Check if tile is within MapArea RectTransform
+                if(!BoardCreationManager.Instance.IsInMapArea(GetSprite()))
+                {
+                    return;
+                }
+
                 Vector3 mousePos = Input.mousePosition;
-                float gridSize = BoardCreationManager.instance.GetGridSize();
+                float gridSize = BoardCreationManager.Instance.GetGridSize();
                 mousePos.x -= (mousePos.x % gridSize) - (gridSize / 4.0f);
                 mousePos.y -= (mousePos.y % gridSize) - (gridSize / 4.0f);
                 transform.position = new Vector3(mousePos.x, mousePos.y, -1);
@@ -120,7 +130,7 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
 
                 if (currentLocation != transform.position)
                 {
-                    BoardCreationManager.instance.PressClearSelection();
+                    BoardCreationManager.Instance.PressClearSelection();
                     currentLocation = transform.position;
                 }
 
@@ -149,7 +159,7 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
             }
         }
 
-        if (BoardCreationManager.instance.GetMode() == BoardCreationManager.Mode.Rotate)
+        if (BoardCreationManager.Instance.GetMode() == BoardCreationManager.Mode.Rotate)
         {
             if (isHovered)
             {
@@ -164,7 +174,7 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
             }
         }
 
-        if (BoardCreationManager.instance.GetMode() == BoardCreationManager.Mode.Delete)
+        if (BoardCreationManager.Instance.GetMode() == BoardCreationManager.Mode.Delete)
         {
             if (isHovered)
             {
@@ -175,7 +185,7 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
             }
         }
 
-        if (BoardCreationManager.instance.GetMode() == BoardCreationManager.Mode.ZForward)
+        if (BoardCreationManager.Instance.GetMode() == BoardCreationManager.Mode.ZForward)
         {
             if (isHovered)
             {
@@ -186,7 +196,7 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
             }
         }
 
-        if (BoardCreationManager.instance.GetMode() == BoardCreationManager.Mode.ZBackward)
+        if (BoardCreationManager.Instance.GetMode() == BoardCreationManager.Mode.ZBackward)
         {
             if (isHovered)
             {
@@ -219,12 +229,12 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
         //BoardCreationManager.instance.SetPieceSelected(this);
     }
 
-    public void PressDeleteTile()
+    public void PressDeleteTile(int amount = 1)
     {
-        parentTile.AddToCurrent(1);
-        BoardCreationManager.instance.TileDeleted(this);
+        parentTile.AddToCurrent(amount);
+        BoardCreationManager.Instance.TileDeleted(this);
         if (pairedTile != null)
-            pairedTile.AddToCurrent(1);
+            pairedTile.AddToCurrent(amount);
         Destroy(gameObject);
     }
     public void PressRotateCW()
@@ -278,4 +288,12 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
         this.pairedTile = pairedTile;
     }
 
+    public void SetPackNumber(int number)
+    {
+        PackNumber = number;
+    }
+    public int GetPackNumber()
+    {
+        return PackNumber;
+    }
 }

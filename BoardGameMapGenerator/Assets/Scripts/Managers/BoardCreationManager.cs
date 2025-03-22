@@ -12,7 +12,7 @@ using UnityEngine.UI;
 public class BoardCreationManager : MonoBehaviour
 {
 
-    public static BoardCreationManager instance;
+    public static BoardCreationManager Instance;
     [Range(1, 200)][SerializeField] float pieceHeight;
     [Range(1, 100)][SerializeField] float textHeight;
 
@@ -21,22 +21,28 @@ public class BoardCreationManager : MonoBehaviour
     [SerializeField] Button clearSelection;
     [SerializeField] RectTransform CategoriesContentArea;
     [SerializeField] RectTransform MapArea;
+    [SerializeField] RectTransform PlaceableArea;
     [SerializeField] ExpandableListController ExpandableListTemplate;
     [SerializeField] GameObject TilesListStartingLocation;
     [SerializeField] TileObjectPlacedController TileObjectPlacedTemplate;
     [SerializeField] List<ModeButtonController> ModeButtons;
 
+    [SerializeField] RectTransform TilePlacingHighlight;
+    [SerializeField] Image NewMapConfirmation;
+
+    [SerializeField] TMP_Text ModeMessage;
+
 
 
     readonly public string GameNamesFilePath = "/GameBoardSets/";
     readonly public string GameNamesTextFileName = "SelectedGameNames.txt";
-    readonly string MapSaveFilePath = "/SavedMaps/";
     public List<string> GameNamesFromFile;
     public List<List<string>> SubFoldersFromFolders;
 
 
     List<ExpandableListController> GamesList;
     Dictionary<string, ChildTileObjectController> SelectableTiles;
+    Dictionary<int, ChildTileObjectController> IDToTile;
 
 
     List<GameObject> boardPieces = new();
@@ -56,23 +62,28 @@ public class BoardCreationManager : MonoBehaviour
         Rotate,
         Move,
         ZForward,
-        ZBackward
+        ZBackward,
+        CameraMovement
     }
 
     Mode currentMode;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Awake()
     {
-        if (instance == null)
+        if (Instance == null)
         {
-            instance = this;
+            Instance = this;
         }
         else
         {
             Destroy(this);
         }
+    }
+    // Start is called before the first frame update
+    void Start()
+    {
         //pieceSelected = false;
+        IDToTile = new();
         GamesList = new();
         SelectableTiles = new();
         gridSize = 32;
@@ -91,71 +102,92 @@ public class BoardCreationManager : MonoBehaviour
             game.PressExpandButton(0);
         }
         //SetCategoriesText();
+        NewMapConfirmation.gameObject.SetActive(false);
     }
     private void Update()
     {
-        if (Input.GetMouseButtonUp(0))
+        // Check if mouse position is within MapArea RectTransform
+        if (selectedPiece != null && selectedPiece.GetCurrent() > 0)
         {
-            if (selectedPiece != null && selectedPiece.GetCurrent() > 0)
+            if (RectTransformUtility.RectangleContainsScreenPoint(PlaceableArea, Input.mousePosition))
             {
-                if (!ableToPlace)
+                if (!IsInMapArea(selectedPiece.GetImage()))
                 {
-                    ableToPlace = true;
+                    TilePlacingHighlight.transform.position = new Vector3(-1000, -1000, -1);
+                    return;
                 }
-                else
-                {
-                    // Place Tile On Board
-                    Vector3 mousePos = Input.mousePosition;
-                    Sprite selectedSprite = selectedPiece.GetImage();
 
-                    if (selectedTile != null && selectedTile.GetHovered() && selectedSprite == selectedTile.GetSprite())
-                        return;
-                    //mousePos.x -= (mousePos.x % (selectedSprite.rect.width / 2.0f)) - (selectedSprite.rect.width / 4.0f);
-                    //mousePos.y -= (mousePos.y % (selectedSprite.rect.height / 2.0f)) - (selectedSprite.rect.height / 4.0f);
-                    mousePos.z = 0;
-                    TileObjectPlacedController newPiece = Instantiate(TileObjectPlacedTemplate, mousePos, Quaternion.identity, MapArea.transform);
-                    boardPieces.Add(newPiece.gameObject);
-                    newPiece.SetImage(selectedPiece.GetImage());
-                    newPiece.SetParentTile(selectedPiece);
-                    newPiece.AdjustToGrid();
-                    //newPiece.transform.position = new Vector3(mousePos.x, mousePos.y, 0);
-                    selectedPiece.SetCountText(selectedPiece.GetCurrent() - 1);
-                    ChildTileObjectController pairedTile = selectedPiece.GetPairedTile();
-                    if (pairedTile != null)
+                Vector3 mousePos = Input.mousePosition;
+                mousePos.z = -1;
+                TilePlacingHighlight.transform.position = mousePos;
+
+                TilePlacingHighlight.GetComponent<RectTransform>().sizeDelta = selectedPiece.GetImageSize();
+                TilePlacingHighlight.transform.position = new Vector3(TilePlacingHighlight.transform.position.x - ((TilePlacingHighlight.transform.position.x % (gridSize)) - (gridSize / 2.0f)), TilePlacingHighlight.transform.position.y - ((TilePlacingHighlight.transform.position.y % (gridSize)) - (gridSize / 2.0f)), -1);
+                //TilePlacingHighlight.transform.SetAsLastSibling();
+
+                if (Input.GetMouseButtonUp(0))
+                {
+                    if (!ableToPlace)
                     {
-                        if (pairedTile.GetCurrent() > 0 && selectedPiece.GetCurrent() < pairedTile.GetCurrent())
-                        {
-                            pairedTile.AddToCurrent(-1);
-                            newPiece.SetPairedTile(pairedTile);
-                        }
+
                     }
-                    else if (selectedPiece.GetTilesPaired() != null)
+                    else
                     {
-                        // Get total current count from all tiles paired
-                        int totalCurrent = 0;
-                        foreach (ChildTileObjectController tile in selectedPiece.GetTilesPaired())
+                        // Place Tile On Board
+                        Sprite selectedSprite = selectedPiece.GetImage();
+
+                        if (selectedTile != null && selectedTile.GetHovered() && selectedSprite == selectedTile.GetSprite())
+                            return;
+
+                        TileObjectPlacedController newPiece = Instantiate(TileObjectPlacedTemplate, mousePos, Quaternion.identity, MapArea.transform);
+                        boardPieces.Add(newPiece.gameObject);
+                        newPiece.SetImage(selectedPiece.GetImage());
+                        newPiece.SetParentTile(selectedPiece);
+                        newPiece.AdjustToGrid();
+                        //newPiece.transform.position = new Vector3(mousePos.x, mousePos.y, 0);
+                        selectedPiece.SetCountText(selectedPiece.GetCurrent() - 1);
+                        newPiece.SetPackNumber(selectedPiece.GetMax() - selectedPiece.GetCurrent());
+                        ChildTileObjectController pairedTile = selectedPiece.GetPairedTile();
+                        if (pairedTile != null)
                         {
-                            totalCurrent += tile.GetCurrent();
+                            if (pairedTile.GetCurrent() > 0 && selectedPiece.GetCurrent() < pairedTile.GetCurrent())
+                            {
+                                pairedTile.AddToCurrent(-1);
+                                newPiece.SetPairedTile(pairedTile);
+                            }
                         }
-                        if (totalCurrent > 0 && selectedPiece.GetCurrent() < totalCurrent)
+                        else if (selectedPiece.GetTilesPaired() != null)
                         {
+                            // Get total current count from all tiles paired
+                            int totalCurrent = 0;
                             foreach (ChildTileObjectController tile in selectedPiece.GetTilesPaired())
                             {
-                                if (tile.GetCurrent() > 0)
+                                totalCurrent += tile.GetCurrent();
+                            }
+                            if (totalCurrent > 0 && selectedPiece.GetCurrent() < totalCurrent)
+                            {
+                                foreach (ChildTileObjectController tile in selectedPiece.GetTilesPaired())
                                 {
-                                    tile.AddToCurrent(-1);
-                                    newPiece.SetPairedTile(tile);
-                                    break;
+                                    if (tile.GetCurrent() > 0)
+                                    {
+                                        tile.AddToCurrent(-1);
+                                        newPiece.SetPairedTile(tile);
+                                        break;
+                                    }
                                 }
                             }
                         }
-                    }
-                    if (selectedPiece.GetCurrent() <= 0)
-                    {
-                        PressClearSelection();
+                        if (selectedPiece.GetCurrent() <= 0)
+                        {
+                            PressClearSelection();
+                        }
                     }
                 }
             }
+        }
+        else
+        {
+            TilePlacingHighlight.transform.position = new Vector3(-1000,-1000, -1);
         }
     }
     bool GetGameNames()
@@ -394,7 +426,8 @@ public class BoardCreationManager : MonoBehaviour
 
         List<string> subCFGStringsEnter = SeperateStrings(subConfigString);
         List<string> subCFGStringsPair = new();
-        Dictionary<string, ChildTileObjectController> tileNameDictionary = new();
+        Dictionary<int, int> tileNameDictionary = new();
+        List<ChildTileObjectController> gameTileList = new();
 
         if (subCFGStringsEnter.Count > 0)
         {
@@ -429,13 +462,23 @@ public class BoardCreationManager : MonoBehaviour
                             Sprite newSprite;
                             Texture2D spriteTexture = LoadTexture(tileFile.FullName);
                             newSprite = Sprite.Create(spriteTexture, new Rect(0, 0, spriteTexture.width, spriteTexture.height), new Vector2(0, 0));
-                            
-                            expandableListParent.AddChildSprite(ref newSprite, tileCombo[1], tileFile.Name);
 
-                            tileNameDictionary.Add(tileFile.Name, expandableListParent.GetChildTiles()[^1]);
-                            SelectableTiles.Add(tileFile.Name, expandableListParent.GetChildTiles()[^1]);
+                            gameTileList.Add(expandableListParent.AddChildSprite(ref newSprite, tileCombo[1], tileFile.Name));
+                            IDToTile.Add(gameTileList[^1].GetInstanceID(), gameTileList[^1]);
+                            string name = tileFile.Name;
+                            tileNameDictionary.Add(GetTileID(gameTileList, name), expandableListParent.GetChildTiles()[^1].GetInstanceID());
+                            if (SelectableTiles.ContainsKey(name))
+                            {
+                                name += "?Copy?";
+                                int i = 0;
+                                while (SelectableTiles.ContainsKey(name + i))
+                                {
+                                    i++;
+                                }
+                                name += i;
+                            }
+                            SelectableTiles.Add(name, expandableListParent.GetChildTiles()[^1]);
                         }
-
                     }
 
                 }
@@ -481,36 +524,17 @@ public class BoardCreationManager : MonoBehaviour
         // Pair the tiles based on the tileNamesDictionary and tilePairs Dictionary
         foreach (KeyValuePair<string, string> tileName in tilePairs)
         {
-            if (tileNameDictionary.ContainsKey(tileName.Key) && tileNameDictionary.ContainsKey(tileName.Value))
+            if (tileNameDictionary.ContainsKey(GetTileID(gameTileList, tileName.Key)) && tileNameDictionary.ContainsKey(GetTileID(gameTileList, tileName.Value)))
             {
-                tileNameDictionary[tileName.Key].SetPairedTile(tileNameDictionary[tileName.Value]);
-                tileNameDictionary[tileName.Value].AddToTilesPaired(tileNameDictionary[tileName.Key]);
+
+                IDToTile[tileNameDictionary[GetTileID(gameTileList, tileName.Key)]].SetPairedTile(IDToTile[tileNameDictionary[GetTileID(gameTileList, tileName.Value)]]);
+                IDToTile[tileNameDictionary[GetTileID(gameTileList, tileName.Value)]].AddToTilesPaired(IDToTile[tileNameDictionary[GetTileID(gameTileList, tileName.Key)]]);
             }
         }
 
         return result;
     }
-    /*LoadObjectsInSubFolders
-    List<Sprite> LoadObjectsInSubFolder(string Game, string Category)
-    {
-        List<Sprite> result = new();
 
-        DirectoryInfo dirInfoPath = new(Application.dataPath + GameNamesFilePath + "/" + Game + "/" + Category + "/");
-        FileInfo[] folderObjects = dirInfoPath.GetFiles("*.jpg", SearchOption.AllDirectories);
-        if (folderObjects.Length == 0) return new ();
-
-        foreach (FileInfo folderObject in folderObjects) 
-        {
-            Sprite newSprite;
-            Texture2D spriteTexture = LoadTexture(folderObject.FullName);
-            newSprite = Sprite.Create(spriteTexture, new(0, 0, spriteTexture.width, spriteTexture.height), new Vector2(0, 0));
-            result.Add(newSprite); 
-            //print(gameName.Name);
-        };
-        
-        return result;
-    }
-    */
     Texture2D LoadTexture(string FilePath)
     {
 
@@ -530,9 +554,22 @@ public class BoardCreationManager : MonoBehaviour
         return null;                     // Return null if load failed
     }
 
+    public void DisplayModeMessage(string message)
+    {
+        ModeMessage.text = message;
+    }
 
-
-
+    private int GetTileID(List<ChildTileObjectController> tileList, string tileName)
+    {
+        for (int i = 0; i < tileList.Count; i++)
+        {
+            if (tileList[i].GetSpriteName() == tileName)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
 
 
 
@@ -582,7 +619,7 @@ public class BoardCreationManager : MonoBehaviour
     {
         selectedPiece = selected;
         clearSelection.interactable = true;
-        ableToPlace = false;
+        ableToPlace = true;
         SetMode(Mode.Deselect);
     }
     public void PressClearSelection()
@@ -690,7 +727,7 @@ public class BoardCreationManager : MonoBehaviour
                 }
             }
         }
-
+        RemoveExcessTiles();
         AdjustsGamesListYOffset();
     }
     public void CollapseAllLists()
@@ -717,6 +754,7 @@ public class BoardCreationManager : MonoBehaviour
         {
             if (SelectableTiles.ContainsKey(expList.GetChildTiles()[i].GetSpriteName()))
             {
+                RemoveFinalTile(expList.GetChildTiles()[i]);
                 SelectableTiles.Remove(expList.GetChildTiles()[i].GetSpriteName());
             }
             Destroy(expList.GetChildTiles()[i].gameObject);
@@ -730,15 +768,33 @@ public class BoardCreationManager : MonoBehaviour
 
     public void PressNewMap()
     {
+        NewMapConfirmation.gameObject.SetActive(true);
+        //ewMap();
+    }
+    public void PressNewMapConfirm()
+    {
+        NewMapConfirmation.gameObject.SetActive(false);
         NewMap();
+    }
+    public void PressNewMapCancel()
+    {
+        NewMapConfirmation.gameObject.SetActive(false);
     }
     public void PressSaveMap()
     {
-        SaveMap();
+        if (MapSaveManager.Instance != null)
+        {
+            MapSaveManager.Instance.OpenSaveMenu();
+        }
+        //SaveMap();
     }
     public void PressLoadMap()
     {
-        LoadMap();
+        if (MapSaveManager.Instance != null)
+        {
+            MapSaveManager.Instance.OpenLoadMenu();
+        }
+        //LoadMap();
     }
     public void PressAddPack()
     {
@@ -790,11 +846,13 @@ public class BoardCreationManager : MonoBehaviour
                 break;
             case Mode.ZBackward:
                 break;
+            case Mode.CameraMovement:
+                break;
         }
     }
 
 
-    // Helper Fucntions
+    // Helper Functions
 
     List<string> SeperateStrings(string fullString, char delimiter = '\n')
     {
@@ -872,18 +930,8 @@ public class BoardCreationManager : MonoBehaviour
         PressClearSelection();
         SetMode(Mode.Deselect);
     }
-    private void SaveMap()
+    public void SaveMap(string path)
     {
-        string path;
-
-#if UNITY_EDITOR
-        //path = EditorUtility.SaveFilePanel("Save Map", Application.dataPath + MapSaveFilePath, "Map", "map");
-        path = Application.dataPath + MapSaveFilePath + "Map.map";
-#else
-        //path = MaverickFileExplorer.SaveFilePanel("Save Map", Application.dataPath + MapSaveFilePath, "Map", "map");
-        path = Application.dataPath + MapSaveFilePath + "Map.map";
-#endif
-
         if (path.Length != 0)
         {
             // save the information from GamesList and boardPieces to the file using File.WriteAllText
@@ -908,29 +956,13 @@ public class BoardCreationManager : MonoBehaviour
             }
 
             File.WriteAllText(path, mapSaveString);
-
-            
-
         }
-
-
     }
-    private void LoadMap()
+    public void LoadMap(string path)
     {
-        string path;
-
-#if UNITY_EDITOR
-        //path = EditorUtility.OpenFilePanel("Load Map", Application.dataPath + MapSaveFilePath, "map");
-        path = Application.dataPath + MapSaveFilePath + "Map.map";
-#else
-        //path = MaverickFileExplorer.SaveFilePanel("Save Map", Application.dataPath + MapSaveFilePath, "map");
-        path = Application.dataPath + MapSaveFilePath + "Map.map";
-#endif
-
         if (path.Length != 0)
         {
             NewMap();
-
 
             // load the information from the file using File.ReadAllText
             SelectableTiles.Clear();
@@ -1123,5 +1155,64 @@ public class BoardCreationManager : MonoBehaviour
         }
 
         return newBoardPieces;
+    }
+
+    public bool IsInMapArea(Sprite sprite = null)
+    {
+        Vector3 mousePos = Input.mousePosition;
+        Sprite selectedSprite = sprite;
+        Rect rect;
+        if (selectedSprite == null)
+            rect = new Rect(0, 0, 0, 0);
+        else
+            rect = selectedSprite.rect;
+
+        // Get Near values of MapArea RectTransform
+        float minX = PlaceableArea.position.x;
+        float minY = PlaceableArea.position.y;
+
+        // Get Far values of MapArea RectTransform
+        float maxX = PlaceableArea.position.x + PlaceableArea.rect.size.x;
+        float maxY = PlaceableArea.position.y + PlaceableArea.rect.size.y;
+
+        if (mousePos.x < minX + rect.size.x / 2.0f || mousePos.x > maxX - rect.size.x / 2.0f)
+        {
+            //PressClearSelection();
+            return false;
+        }
+        if (mousePos.y < minY + rect.size.y / 2.0f || mousePos.y > maxY - rect.size.y / 2.0f)
+        {
+            //PressClearSelection();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void RemoveExcessTiles()
+    {
+        // Remove placed tiles with PackNumber greater than the max number of tiles for that tile
+        for (int i = boardPieces.Count - 1; i >= 0; i--)
+        {
+            TileObjectPlacedController tile = boardPieces[i].GetComponent<TileObjectPlacedController>();
+
+            if (tile.parentTile == null)
+                tile.PressDeleteTile();
+            if (tile.GetPackNumber() > tile.parentTile.GetMax())
+                tile.PressDeleteTile();
+            if (tile.parentTile.GetMax() == 0)
+                tile.PressDeleteTile();
+        }
+    }
+    private void RemoveFinalTile(ChildTileObjectController tile)
+    {
+        for (int i = boardPieces.Count - 1; i >= 0; i--)
+        {
+            TileObjectPlacedController placedTile = boardPieces[i].GetComponent<TileObjectPlacedController>();
+            if (placedTile.parentTile == tile)
+            {
+                placedTile.PressDeleteTile();
+            }
+        }
     }
 }

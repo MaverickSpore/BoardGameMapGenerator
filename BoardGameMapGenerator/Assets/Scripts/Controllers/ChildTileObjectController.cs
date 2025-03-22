@@ -25,6 +25,10 @@ public class ChildTileObjectController : MonoBehaviour
     {
         return currentImage.sprite;
     }
+    public Vector2 GetImageSize()
+    {
+        return currentImage.GetComponent<RectTransform>().sizeDelta;
+    }
     public string GetSpriteName()
     {
         return name;
@@ -82,14 +86,17 @@ public class ChildTileObjectController : MonoBehaviour
     public int AddToCurrent(int add)
     {
         current += add;
+        if (current > max)
+            current = max;
+
         countText.text = current + " / " + max;
         return current;
     }
     public void PressChildTile()
     {
         if (GetCurrent() > 0)
-            if (BoardCreationManager.instance != null)
-                BoardCreationManager.instance.SetPieceSelected(this);
+            if (BoardCreationManager.Instance != null)
+                BoardCreationManager.Instance.SetPieceSelected(this);
     }
 
     public void SetPairedTile(ChildTileObjectController pairedTile)

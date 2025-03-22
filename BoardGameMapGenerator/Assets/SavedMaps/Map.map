@@ -1,2 +1,2 @@
-GamesList=G-Zombicide,G-Zombicide-A5-2E,G-Zombicide,
-BoardPieces=Location:648,712,0;Sprite:Dalle A Recto.JPG;Rotation:0;/Location:808,360,0;Sprite:Dalle A Verso.JPG;Rotation:0;/Location:872,392,0;Sprite:pimp mobile token.jpg;Rotation:0;/Location:1512,616,0;Sprite:pimp mobile token.jpg;Rotation:0;/Location:1512,552,0;Sprite:pimp mobile token.jpg;Rotation:0;/Location:840,328,0;Sprite:objective token blue.jpg;Rotation:0;/Location:744,392,0;Sprite:objective token blue.jpg;Rotation:0;/
+GamesList=G-Zombicide,G-Zombicide,G-Zombicide-A5-2E,
+BoardPieces=Location:560,752,-1;Sprite:Dalle A Recto.JPG;Rotation:0;/Location:912,496,-1;Sprite:Dalle A Recto.JPG;Rotation:0;/

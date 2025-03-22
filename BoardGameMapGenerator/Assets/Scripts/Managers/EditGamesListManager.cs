@@ -63,9 +63,9 @@ public class EditGamesListManager : MonoBehaviour
     }
     private void MenuOpened()
     {
-        BoardCreationManager.instance.CollapseAllLists();
+        BoardCreationManager.Instance.CollapseAllLists();
         BoardCreationGameNames.Clear();
-        foreach (string gameName in BoardCreationManager.instance.GameNamesFromFile)
+        foreach (string gameName in BoardCreationManager.Instance.GameNamesFromFile)
         {
             BoardCreationGameNames.Add(gameName);
         }
@@ -96,8 +96,8 @@ public class EditGamesListManager : MonoBehaviour
     {
         if (GameNamesFromFolders.ContainsKey(gameName.text))
         {
-            BoardCreationManager.instance.AddToExpandableLists(GameNamesFromFolders[gameName.text]);
-            BoardCreationManager.instance.AddToGameNamesList(GameNamesFromFolders[gameName.text]);
+            BoardCreationManager.Instance.AddToExpandableLists(GameNamesFromFolders[gameName.text]);
+            BoardCreationManager.Instance.AddToGameNamesList(GameNamesFromFolders[gameName.text]);
             GameNamesFromFolders.Remove(gameName.text);
             ClearList();
             SetupGamesList();
@@ -107,12 +107,12 @@ public class EditGamesListManager : MonoBehaviour
     {
         if (GameNamesFromFolders.ContainsKey(gameName.text))
         {
-            BoardCreationManager.instance.GameNamesFromFile.Remove(GameNamesFromFolders[gameName.text]);
-            if (!BoardCreationManager.instance.GameNamesFromFile.Contains(GameNamesFromFolders[gameName.text]))
+            BoardCreationManager.Instance.GameNamesFromFile.Remove(GameNamesFromFolders[gameName.text]);
+            if (!BoardCreationManager.Instance.GameNamesFromFile.Contains(GameNamesFromFolders[gameName.text]))
             {
                 GameNamesFromFolders.Remove(gameName.text);
             }
-            BoardCreationManager.instance.UpdateExpandableLists();
+            BoardCreationManager.Instance.UpdateExpandableLists();
             ClearList();
             SetupGamesList();
         }
@@ -120,7 +120,7 @@ public class EditGamesListManager : MonoBehaviour
 
     public void PressConfirm()
     {
-        BoardCreationManager.instance.UpdateExpandableLists();
+        BoardCreationManager.Instance.UpdateExpandableLists();
         BoardCreationGameNames.Clear();
         this.gameObject.SetActive(false);
     }
@@ -128,14 +128,14 @@ public class EditGamesListManager : MonoBehaviour
     {
         if (BoardCreationGameNames.Count > 0)
         {
-            BoardCreationManager.instance.GameNamesFromFile.Clear();
+            BoardCreationManager.Instance.GameNamesFromFile.Clear();
             //BoardCreationManager.instance.GameNamesFromFile.AddRange(BoardCreationGameNames);
             foreach (string gameName in BoardCreationGameNames)
             {
-                BoardCreationManager.instance.GameNamesFromFile.Add(gameName);
+                BoardCreationManager.Instance.GameNamesFromFile.Add(gameName);
             }
         }
-        BoardCreationManager.instance.UpdateExpandableLists();
+        BoardCreationManager.Instance.UpdateExpandableLists();
         ClearList();
         GameNamesFromFolders.Clear();
         this.gameObject.SetActive(false);
@@ -149,14 +149,14 @@ public class EditGamesListManager : MonoBehaviour
     bool LoadGameNames()
     {
         GameNamesFromFolders.Clear();
-        DirectoryInfo dirInfoPath = new(Application.dataPath + BoardCreationManager.instance.GameNamesFilePath);
+        DirectoryInfo dirInfoPath = new(Application.dataPath + BoardCreationManager.Instance.GameNamesFilePath);
         DirectoryInfo[] gameNames = dirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
         if (gameNames.Length == 0) return false;
         foreach (DirectoryInfo gameName in gameNames) {
             if (Directory.Exists(gameName.FullName))
             {
                 //if (BoardCreationManager.instance.GameNamesFromFile.Contains(gameName.Name)) { continue; }
-                GameNamesFromFolders.Add(BoardCreationManager.instance.GetGameName(gameName.FullName), gameName.Name);
+                GameNamesFromFolders.Add(BoardCreationManager.Instance.GetGameName(gameName.FullName), gameName.Name);
             } 
         };
 
@@ -166,10 +166,10 @@ public class EditGamesListManager : MonoBehaviour
     {
         GameNamesFromFolders.Clear();
         //GameNamesFromFolders.Keys.AddRange(BoardCreationManager.instance.GameNamesFromFolders);
-        foreach (string gameName in BoardCreationManager.instance.GameNamesFromFile)
+        foreach (string gameName in BoardCreationManager.Instance.GameNamesFromFile)
         {
-            if (GameNamesFromFolders.ContainsKey(BoardCreationManager.instance.GetGameName(Application.dataPath + BoardCreationManager.instance.GameNamesFilePath + "/" + gameName))) { continue; }
-            GameNamesFromFolders.Add(BoardCreationManager.instance.GetGameName(Application.dataPath + BoardCreationManager.instance.GameNamesFilePath + "/" + gameName), gameName);
+            if (GameNamesFromFolders.ContainsKey(BoardCreationManager.Instance.GetGameName(Application.dataPath + BoardCreationManager.Instance.GameNamesFilePath + "/" + gameName))) { continue; }
+            GameNamesFromFolders.Add(BoardCreationManager.Instance.GetGameName(Application.dataPath + BoardCreationManager.Instance.GameNamesFilePath + "/" + gameName), gameName);
         }
         if (GameNamesFromFolders == null) { return false; }
         return true;

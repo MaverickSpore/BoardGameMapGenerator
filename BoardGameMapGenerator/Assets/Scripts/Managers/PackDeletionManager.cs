@@ -77,14 +77,14 @@ public class PackDeletionManager : MonoBehaviour
     private void AdjustFoldersList()
     {
         if (FoldersList.Count <= 0) { return; }
-        FoldersList[0].GetComponent<RectTransform>().transform.position = NoFoldersFound.GetComponent<RectTransform>().transform.position;
-        float yOffset = FoldersList[0].GetComponent<RectTransform>().transform.position.y;
+        float startingY = NoFoldersFound.GetComponent<RectTransform>().transform.position.y;
+        float yOffset = 0;
         foreach (TMP_Text folder in FoldersList)
         {
-            folder.GetComponent<RectTransform>().transform.position = new Vector3(folder.GetComponent<RectTransform>().transform.position.x, yOffset);
-            yOffset -= 50;//folder.GetComponent<RectTransform>().sizeDelta.y;
+            folder.GetComponent<RectTransform>().transform.position = new Vector3(folder.GetComponent<RectTransform>().transform.position.x, startingY + yOffset);
+            yOffset -= 50;
         }
-        ContentArea.GetComponent<RectTransform>().sizeDelta = new Vector2(ContentArea.GetComponent<RectTransform>().sizeDelta.x, 50 * (FoldersList.Count + 2));
+        ContentArea.sizeDelta = new Vector2(ContentArea.sizeDelta.x, Mathf.Abs(yOffset) - NoFoldersFound.GetComponent<RectTransform>().transform.localPosition.y);
     }
     private void DeleteFolder(string path)
     {
@@ -95,6 +95,10 @@ public class PackDeletionManager : MonoBehaviour
         if (File.Exists(path + ".meta"))
         {
             File.Delete(path + ".meta");
+        }
+        if (PackImportManager.instance != null)
+        {
+            PackImportManager.instance.PressImportPack();
         }
     }
 

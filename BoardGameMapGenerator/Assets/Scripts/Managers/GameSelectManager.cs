@@ -13,10 +13,18 @@ public class GameSelectManager : MonoBehaviour
     [SerializeField] TMP_Dropdown gameNamesDropdown;
     [SerializeField] RectTransform gamesAddedContentArea;
 
-    [Range(1,100)][SerializeField] float addedGamesHeight;
     [SerializeField] TMP_Text noGameAddedText;
+
+    [SerializeField] Image GoodImportImage;
+    [SerializeField] Image BadImportImage;
+    [SerializeField] TMP_Text BadImportMessage;
+
+    [SerializeField] Button AddGameButton;
+    [SerializeField] Button BuildButton;
+    [SerializeField] Button PackManagerButton;
+    [SerializeField] Button PackCreationButton;
+
     public List<TMP_Text> gamesAdded;
-    TMP_Text toCompare;
 
     int GameSelected;
 
@@ -40,8 +48,7 @@ public class GameSelectManager : MonoBehaviour
             Destroy(this);
         }
         GameSelected = 0;
-        gamesAdded = new List<TMP_Text>() { noGameAddedText };
-        gamesAdded[0].GetComponent<AddedGameController>().HideButton();
+        gamesAdded = new List<TMP_Text>();
         if (LoadGameNames()) 
         { 
             List<string> gameNames = new();
@@ -52,51 +59,59 @@ public class GameSelectManager : MonoBehaviour
             gameNamesDropdown.AddOptions(gameNames); 
         }
         else { print("Game Name Loading Error - Game Names Not Loaded"); }
+        GoodImportImage.gameObject.SetActive(false);
+        BadImportImage.gameObject.SetActive(false);
     }
 
     public void AddGameSelected(int selection, string selectionName)
     {
-        if (gamesAdded.Count == 1)
-        {
-            noGameAddedText.GetComponent<AddedGameController>().ShowButton();
-            noGameAddedText.gameObject.SetActive(false);
-            gamesAdded.Remove(noGameAddedText);
-        }
-
         GameSelected = selection;
-        TMP_Text newText = Instantiate(noGameAddedText, gamesAddedContentArea.transform);
-        newText.gameObject.SetActive(true);
+        TMP_Text game = IsInGamesAdded(selectionName);
+        if (game != null)
+        {
+            game.GetComponent<AddedGameController>().SetCount(game.GetComponent<AddedGameController>().GetCount() + 1);
+            return;
+        }
         
-        newText.transform.position = new Vector3(newText.transform.position.x, newText.transform.position.x - (addedGamesHeight * gamesAdded.Count) - 75 + gamesAddedContentArea.localPosition.y, newText.transform.position.z);
-        newText.gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(250, addedGamesHeight);
-        gamesAddedContentArea.sizeDelta = new Vector2(gamesAddedContentArea.sizeDelta.x, (addedGamesHeight * gamesAdded.Count) + 100);
+        TMP_Text newText = Instantiate(noGameAddedText, gamesAddedContentArea.transform);
         newText.text = selectionName;
+        newText.GetComponent<AddedGameController>().ShowButton();
 
 
         gamesAdded.Add(newText);
 
+        AdjustGamesList();
     }
-    public void RemoveGameSelected(TMP_Text removedObject)
+    public void AdjustGamesList()
     {
-        toCompare = removedObject;
-        int loc = gamesAdded.FindIndex(IsMatch);
-        gamesAdded.Remove(removedObject);
-        Destroy(removedObject.gameObject);
-        for (int i = loc; i < gamesAdded.Count; i++)
-        {
-            gamesAdded[i].transform.position = new Vector3(gamesAdded[i].transform.position.x, gamesAdded[i].transform.position.y + addedGamesHeight, gamesAdded[i].transform.position.z);
-        }
-        gamesAddedContentArea.sizeDelta = new Vector2(gamesAddedContentArea.sizeDelta.x, (addedGamesHeight * gamesAdded.Count) + 100);
         if (gamesAdded.Count <= 0)
         {
             noGameAddedText.gameObject.SetActive(true);
-            noGameAddedText.GetComponent<AddedGameController>().HideButton();
-            gamesAdded.Add(noGameAddedText);
+            return;
         }
+        float startingY = noGameAddedText.GetComponent<RectTransform>().transform.position.y;
+        float yOffset = 0;
+
+        foreach (TMP_Text game in gamesAdded)
+        {
+            game.gameObject.SetActive(true);
+            game.GetComponent<RectTransform>().transform.position = new Vector3(noGameAddedText.GetComponent<RectTransform>().transform.position.x, startingY + yOffset);
+            yOffset -= 50;
+        }
+        gamesAddedContentArea.sizeDelta = new Vector2(gamesAddedContentArea.sizeDelta.x, Mathf.Abs(yOffset) + 25);
+        noGameAddedText.gameObject.SetActive(false);
     }
-    bool IsMatch(TMP_Text compare)
+    public void RemoveGameSelected(TMP_Text removedObject)
     {
-        return compare == toCompare;
+        int loc = gamesAdded.FindIndex(x => x == removedObject);
+        if (gamesAdded[loc].GetComponent<AddedGameController>().GetCount() > 1)
+            gamesAdded[loc].GetComponent<AddedGameController>().SetCount(gamesAdded[loc].GetComponent<AddedGameController>().GetCount() - 1);
+        else
+        {
+            gamesAdded.Remove(removedObject);
+            Destroy(removedObject.gameObject);
+            AdjustGamesList();
+        }
     }
     public int GetGameSelected()
     {
@@ -104,12 +119,14 @@ public class GameSelectManager : MonoBehaviour
     }
     public void PressBuildButton()
     {
+        if (gamesAdded.Count <= 0) return;
         if (gamesAdded[0] == noGameAddedText) return;
 
         string gamesAddedText = "";
         foreach (TMP_Text gameName in gamesAdded)
         {
-            gamesAddedText += GameNamesFromFolders[gameName.text] + ",";
+            for (int i = 0; i < gameName.GetComponent<AddedGameController>().GetCount(); i++)
+                gamesAddedText += GameNamesFromFolders[gameName.text] + ",";
         }
 
         File.WriteAllText(Application.dataPath + GameNamesFilePath + GameNamesTextFileName, gamesAddedText);
@@ -136,6 +153,16 @@ public class GameSelectManager : MonoBehaviour
             gameNamesDropdown.AddOptions(gameNames);
         }
         else { print("Game Name Loading Error - Game Names Not Loaded"); }
+
+        for(int i = gamesAdded.Count - 1; i >= 0; i--)
+        {
+            if (!GameNamesFromFolders.ContainsKey(gamesAdded[i].text))
+            {
+                Destroy(gamesAdded[i].gameObject);
+                gamesAdded.RemoveAt(i);
+            }
+        }
+        AdjustGamesList();
     }
     public void PressCreatePack()
     {
@@ -160,13 +187,7 @@ public class GameSelectManager : MonoBehaviour
 
         return true;
     }
-    public void PressTestFeature()
-    {
-        if (gamesAdded.Count <= 0 || gamesAdded[0] == noGameAddedText) return;
-        if (LoadGameSubFolders()) { }
-        else { print("Game Subfolders Loading Error - Game Subfolders Not Loaded"); }
-    }
-    bool LoadGameSubFolders()
+/*    bool LoadGameSubFolders()
     {
         FrontFoldersFromFolders = new List<string>();
         SubFoldersFromFolders = new List<string>();
@@ -184,7 +205,7 @@ public class GameSelectManager : MonoBehaviour
 
 
         return true;
-    }
+    }*/
 
     List<string> SeperateStrings(string fullString, char delimiter = '\n')
     {
@@ -247,5 +268,60 @@ public class GameSelectManager : MonoBehaviour
         }
 
         return "End of GetGameName - No Name Found";
+    }
+
+    public void PressPackManager()
+    {
+        if (PackImportManager.instance != null)
+        {
+            PackImportManager.instance.PressImportPack();
+        }
+        if (PackDeletionManager.instance != null)
+        {
+            PackDeletionManager.instance.PressDeletePack();
+        }
+        GoodImportImage.gameObject.SetActive(false);
+        BadImportImage.gameObject.SetActive(false);
+
+        AddGameButton.interactable = false;
+        BuildButton.interactable = false;
+        PackManagerButton.interactable = false;
+        PackCreationButton.interactable = false;
+    }
+    public void PressReturnToGameSelect()
+    {
+        if (PackImportManager.instance != null)
+        {
+            PackImportManager.instance.gameObject.SetActive(false);
+        }
+        if (PackDeletionManager.instance != null)
+        {
+            PackDeletionManager.instance.gameObject.SetActive(false);
+        }
+        GoodImportImage.gameObject.SetActive(false);
+        BadImportImage.gameObject.SetActive(false);
+
+        AddGameButton.interactable = true;
+        BuildButton.interactable = true;
+        PackManagerButton.interactable = true;
+        PackCreationButton.interactable = true;
+    }
+    public void ShowGoodImport()
+    {
+        GoodImportImage.gameObject.SetActive(true);
+    }
+    public void ShowBadImport(string ErrorString = "Unknown Error")
+    {
+        BadImportImage.gameObject.SetActive(true);
+        BadImportMessage.text = ErrorString;
+    }
+
+    private TMP_Text IsInGamesAdded(string gameName)
+    {
+        foreach (TMP_Text game in gamesAdded)
+        {
+            if (game.text == gameName) return game;
+        }
+        return null;
     }
 }

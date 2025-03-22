@@ -1,12 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class ModeButtonController : MonoBehaviour
+public class ModeButtonController : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [SerializeField] Image Border;
     [SerializeField] BoardCreationManager.Mode mode;
+    [SerializeField] string ModeMessage;
 
     // Start is called before the first frame update
     void Start()
@@ -15,7 +18,7 @@ public class ModeButtonController : MonoBehaviour
     }
     public void PressModeButton()
     {
-        BoardCreationManager.instance.SetMode(mode);
+        BoardCreationManager.Instance.SetMode(mode);
         if (mode == BoardCreationManager.Mode.Deselect)
             return;
         Selected();
@@ -23,8 +26,9 @@ public class ModeButtonController : MonoBehaviour
 
     public void Deselect()
     {
+        if (Border == null)
+            return;
         GetComponent<RectTransform>().sizeDelta = Border.GetComponent<RectTransform>().sizeDelta;
-        //Border.color = Color.white;
         Border.color = Color.clear;
     }
 
@@ -33,6 +37,14 @@ public class ModeButtonController : MonoBehaviour
         Vector2 size = Border.GetComponent<RectTransform>().sizeDelta;
         size.Scale(new Vector2(0.9f, 0.9f));
         GetComponent<RectTransform>().sizeDelta = size;
-        Border.color = Color.green;
+        Border.color = Color.white;
+    }
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        BoardCreationManager.Instance.DisplayModeMessage(ModeMessage);
+    }
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        BoardCreationManager.Instance.DisplayModeMessage("");
     }
 }
