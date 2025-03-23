@@ -129,7 +129,6 @@ public class EditGamesListManager : MonoBehaviour
         if (BoardCreationGameNames.Count > 0)
         {
             BoardCreationManager.Instance.GameNamesFromFile.Clear();
-            //BoardCreationManager.instance.GameNamesFromFile.AddRange(BoardCreationGameNames);
             foreach (string gameName in BoardCreationGameNames)
             {
                 BoardCreationManager.Instance.GameNamesFromFile.Add(gameName);
@@ -139,8 +138,6 @@ public class EditGamesListManager : MonoBehaviour
         ClearList();
         GameNamesFromFolders.Clear();
         this.gameObject.SetActive(false);
-
-
     }
 
 
@@ -165,7 +162,6 @@ public class EditGamesListManager : MonoBehaviour
     bool PullGameNames()
     {
         GameNamesFromFolders.Clear();
-        //GameNamesFromFolders.Keys.AddRange(BoardCreationManager.instance.GameNamesFromFolders);
         foreach (string gameName in BoardCreationManager.Instance.GameNamesFromFile)
         {
             if (GameNamesFromFolders.ContainsKey(BoardCreationManager.Instance.GetGameName(Application.dataPath + BoardCreationManager.Instance.GameNamesFilePath + "/" + gameName))) { continue; }

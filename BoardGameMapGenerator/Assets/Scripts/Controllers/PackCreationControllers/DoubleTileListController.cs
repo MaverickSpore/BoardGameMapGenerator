@@ -31,10 +31,6 @@ public class DoubleTileListController : MonoBehaviour
         Width = size.x;
         Height = size.y;
     }
-    public float GetWidth()
-    {
-        return Width;
-    }
     public float GetHeight()
     {
         return Height;

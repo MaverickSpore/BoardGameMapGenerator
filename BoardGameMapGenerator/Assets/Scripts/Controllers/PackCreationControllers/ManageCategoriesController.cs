@@ -29,10 +29,6 @@ public class ManageCategoriesController : MonoBehaviour
         ReorderUpButton.gameObject.SetActive(true);
         ReorderDownButton.gameObject.SetActive(false);
     }
-    public void SetOther()
-    {
-        RemoveCategoryButton.gameObject.SetActive(false);
-    }
     public void SetFolder()
     {
         RemoveCategoryButton.gameObject.SetActive(true);

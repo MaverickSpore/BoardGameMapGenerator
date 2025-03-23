@@ -355,13 +355,14 @@ public class PackImportManager : MonoBehaviour
     }
     
     // public methods
-    public void PressImportPack()
+    public void OpenPackImportManager()
     {
         this.gameObject.SetActive(true);
         ReloadFoldersList();
     }
     public void PressReturnToSelect()
     {
+        print("PackImportManager - PressReturnToSelect Has Been Used");
         this.gameObject.SetActive(false);
         GameSelectManager.instance.PressRefreshGames();
     }
@@ -381,21 +382,16 @@ public class PackImportManager : MonoBehaviour
         ReloadFoldersList();
         if (PackDeletionManager.instance != null)
         {
-            PackDeletionManager.instance.PressDeletePack();
+            PackDeletionManager.instance.OpenPackDeletionManager();
         }
 
         GameSelectManager.instance.PressRefreshGames();
     }
     public void PressExitFolder()
     {
-        List<string> strings = SeperateStrings(CurrentPath, '/');
-        if (strings.Count <= 0) { return; }
-        if (strings[^1] == "") { strings.RemoveAt(strings.Count - 1); }
-        strings.RemoveAt(strings.Count - 1);
+        CurrentPath = GetParentFolder(CurrentPath);
 
-        CurrentPath = string.Join("/", strings);
-
-        if (CurrentPath == "")
+        if (CurrentPath == "" || CurrentPath == "/")
         {
             GetDrives();
             return;

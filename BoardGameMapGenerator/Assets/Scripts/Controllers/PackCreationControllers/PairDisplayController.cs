@@ -42,8 +42,4 @@ public class PairDisplayController : MonoBehaviour
     {
         Category = category;
     }
-    public string GetCategory()
-    {
-        return Category;
-    }
 }

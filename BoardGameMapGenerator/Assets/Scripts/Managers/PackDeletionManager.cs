@@ -98,14 +98,14 @@ public class PackDeletionManager : MonoBehaviour
         }
         if (PackImportManager.instance != null)
         {
-            PackImportManager.instance.PressImportPack();
+            PackImportManager.instance.OpenPackImportManager();
         }
     }
 
 
 
     // public methods
-    public void PressDeletePack()
+    public void OpenPackDeletionManager()
     {
         this.gameObject.SetActive(true);
         ReloadFoldersList();

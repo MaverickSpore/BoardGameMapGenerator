@@ -6,10 +6,6 @@ using UnityEngine.UI;
 public class DeleteFolderController : MonoBehaviour
 {
     [SerializeField] Button DeleteButton;
-    public void SetOther()
-    {
-        DeleteButton.gameObject.SetActive(false);
-    }
     public void SetFolder()
     {
         DeleteButton.gameObject.SetActive(true);

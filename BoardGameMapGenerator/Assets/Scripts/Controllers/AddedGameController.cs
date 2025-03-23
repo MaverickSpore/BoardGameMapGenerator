@@ -9,10 +9,6 @@ public class AddedGameController : MonoBehaviour
     [SerializeField] Button removeButton;
     [SerializeField] TMP_Text CountText;
 
-    public void HideButton()
-    {
-        removeButton.gameObject.SetActive(false);
-    }
     public void ShowButton()
     {
         removeButton.gameObject.SetActive(true);

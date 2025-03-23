@@ -22,7 +22,6 @@ public class TileListController : MonoBehaviour
     private void SetSizeText(Vector2 size)
     {
         SizeText.text = size.x + "x" + size.y;
-        //GetComponent<RectTransform>().sizeDelta = new Vector2(GetComponent<RectTransform>().sizeDelta.x, size.y);
     }
     private void SetImage(Sprite sprite, Vector2 size)
     {
@@ -44,22 +43,6 @@ public class TileListController : MonoBehaviour
         SetSizeText(TileInfo.size);
         SetMaxText(TileInfo.maxCount);
         SetImage(TileInfo.ImageSprite, TileInfo.size);
-
-        ShowTile();
-    }
-    public void SetInfo(Vector2 size, int max, Sprite tileImage)
-    {
-        SetSizeText(size);
-        SetMaxText(max);
-        SetImage(tileImage, size);
-
-        ShowTile();
-    }
-    public void SetInfo(string width, string height, int max, Sprite tileImage)
-    {
-        SizeText.text = width + "x" + height;
-        SetMaxText(max);
-        SetImage(tileImage, new Vector2(int.Parse(width), int.Parse(height)));
 
         ShowTile();
     }

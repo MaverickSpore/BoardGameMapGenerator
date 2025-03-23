@@ -113,10 +113,6 @@ public class GameSelectManager : MonoBehaviour
             AdjustGamesList();
         }
     }
-    public int GetGameSelected()
-    {
-        return GameSelected;
-    }
     public void PressBuildButton()
     {
         if (gamesAdded.Count <= 0) return;
@@ -140,7 +136,6 @@ public class GameSelectManager : MonoBehaviour
 
     public void PressRefreshGames()
     {
-        //gameNamesDropdown.ClearOptions();
         gameNamesDropdown.options.Clear();
         GameNamesFromFolders.Clear();
         if (LoadGameNames())
@@ -180,32 +175,13 @@ public class GameSelectManager : MonoBehaviour
         {
             if (Directory.Exists(gameName.FullName))
             {
-                //GameNamesFromFolders.Add(gameName.Name.Substring(0, gameName.Name.Length)); /*print(gameName.Name);*/
-                GameNamesFromFolders.Add(GetGameName(gameName.FullName), gameName.Name); // Changed This Recently
+                GameNamesFromFolders.Add(GetGameName(gameName.FullName), gameName.Name);
             }
         };
 
         return true;
     }
-/*    bool LoadGameSubFolders()
-    {
-        FrontFoldersFromFolders = new List<string>();
-        SubFoldersFromFolders = new List<string>();
-        foreach (TMP_Text gameName in gamesAdded)
-        {
-            if (gameName == noGameAddedText) continue;
-            //print("Zip Folder: " + GameNamesFilePath + "/" + gameName.text);
-            DirectoryInfo dirInfoPath = new(Application.dataPath + GameNamesFilePath + "/" + gameName.text);
-            DirectoryInfo[] gameFolders = dirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
-            if (gameFolders.Length == 0) return false;
 
-            foreach (DirectoryInfo folder in gameFolders) { SubFoldersFromFolders.Add(folder.Name); }; // Changed This Recently
-        }
-        //print(dirInfoPath.FullName);
-
-
-        return true;
-    }*/
 
     List<string> SeperateStrings(string fullString, char delimiter = '\n')
     {
@@ -274,11 +250,11 @@ public class GameSelectManager : MonoBehaviour
     {
         if (PackImportManager.instance != null)
         {
-            PackImportManager.instance.PressImportPack();
+            PackImportManager.instance.OpenPackImportManager();
         }
         if (PackDeletionManager.instance != null)
         {
-            PackDeletionManager.instance.PressDeletePack();
+            PackDeletionManager.instance.OpenPackDeletionManager();
         }
         GoodImportImage.gameObject.SetActive(false);
         BadImportImage.gameObject.SetActive(false);

@@ -59,6 +59,11 @@ public class MapSaveManager : MonoBehaviour
 
     private void SetupFolderList()
     {
+        if (CurrentPath == "")
+        {
+            GetDrives();
+            return;
+        }
         DirectoryInfo dirInfoPath = new(CurrentPath);
 
         if (!dirInfoPath.Exists)
@@ -233,15 +238,12 @@ public class MapSaveManager : MonoBehaviour
         if (BoardCreationManager.Instance == null) { return; }
         if (map == null || map.text == NewMapString)
         {
-            // will add text box for this option later
             NewMapName.gameObject.SetActive(true);
         }
         else
         {
             CurrentOverwriteText = map;
             OverWriteConfirmation.gameObject.SetActive(true);
-            //BoardCreationManager.Instance.SaveMap(CurrentPath + map.text);
-            //CloseMenu();
             return;
         }
     }

@@ -102,8 +102,6 @@ public class PackCreationManager : MonoBehaviour
     List<TMP_Text> ZipSaveFolderDisplayList;
     List<string> CategoriesList;
     List<ImportedImageInfo> TilesList;
-    //Dictionary<string, List<ImportedImageInfo>> CategoriesDictionary;
-    //Dictionary<ImportedImageInfo, List<ImportedImageInfo>> PairedTiles;
     List<PairedTileInfo> PairedTiles;
 
     readonly string GameBoardSetPath = Application.dataPath + "/GameBoardSets/";
@@ -132,8 +130,6 @@ public class PackCreationManager : MonoBehaviour
         PairingsDisplayList = new List<TMP_Text>();
         ZipSaveFolderDisplayList = new List<TMP_Text>();
         TilesList = new List<ImportedImageInfo>();
-        //CategoriesDictionary = new Dictionary<string, List<ImportedImageInfo>>();
-        //PairedTiles = new Dictionary<ImportedImageInfo, List<ImportedImageInfo>>();
         CategoriesList = new List<string>();
         CurrentPath = GameBoardSetPath;
 
@@ -154,7 +150,6 @@ public class PackCreationManager : MonoBehaviour
     }
     private void SetSize()
     {
-        //CurrentTileSize.text = TileWidth.captionText.text + " x " + TileHeight.captionText.text;
         PreviewImage.rectTransform.sizeDelta = new Vector2(int.Parse(TileWidth.captionText.text), int.Parse(TileHeight.captionText.text));
     }
 
@@ -197,14 +192,6 @@ public class PackCreationManager : MonoBehaviour
     private void ResetCategoriesListManage()
     {
         CategoriesListManage ??= new List<TMP_Text>();
-        /*if (CategoriesListManage.Count > 0)
-        {
-            foreach (TMP_Text folder in CategoriesListManage)
-            {
-                Destroy(folder.gameObject);
-            }
-            CategoriesListManage.Clear();
-        }*/
         NoCategoriesFoundManage.gameObject.SetActive(true);
     }
     private void ReloadCategoriesListManage()
@@ -343,9 +330,10 @@ public class PackCreationManager : MonoBehaviour
         foreach (TMP_Text tile in DoubleTilesListLeft)
         {
             if (tile == null) { continue; }
-            yOffsetLeft -= tile.GetComponent<DoubleTileListController>().GetHeight() * 0.5f;
+            float halfHeight = tile.GetComponent<DoubleTileListController>().GetHeight() * 0.5f;
+            yOffsetLeft -= halfHeight;
             tile.GetComponent<RectTransform>().transform.position = new Vector3(NoTilesFoundDouble.GetComponent<RectTransform>().transform.position.x  - 128, startingY + yOffsetLeft);
-            yOffsetLeft -= tile.GetComponent<DoubleTileListController>().GetHeight() * 0.5f;
+            yOffsetLeft -= halfHeight;
         }
 
         // Right Side
@@ -353,9 +341,10 @@ public class PackCreationManager : MonoBehaviour
         foreach (TMP_Text tile in DoubleTilesListRight)
         {
             if (tile == null) { continue; }
-            yOffsetRight -= tile.GetComponent<DoubleTileListController>().GetHeight() * 0.5f;
+            float halfHeight = tile.GetComponent<DoubleTileListController>().GetHeight() * 0.5f;
+            yOffsetRight -= halfHeight;
             tile.GetComponent<RectTransform>().transform.position = new Vector3(NoTilesFoundDouble.GetComponent<RectTransform>().transform.position.x + 128, startingY + yOffsetRight);
-            yOffsetRight -= tile.GetComponent<DoubleTileListController>().GetHeight() * 0.5f;
+            yOffsetRight -= halfHeight;
         }
 
         float yOffset = Mathf.Abs(Mathf.Min(yOffsetLeft, yOffsetRight));
@@ -371,10 +360,8 @@ public class PackCreationManager : MonoBehaviour
         DoubleTilesListLeft.Remove(tile);
         DoubleTilesListRight.Remove(tile);
         tile.transform.SetParent(ContentAreaManage.transform);
-        // TODO: Add Tile to Category
         CategoriesListManage.Add(tile);
         AdjustCategoriesListManage();
-        // TODO: Remove Tile from TilesList
         ReloadDoubleTilesList();
     }
     public void PressTileUp(TMP_Text tile)
@@ -410,9 +397,7 @@ public class PackCreationManager : MonoBehaviour
             DoubleTilesListRight.Add(tile);
         }
         // Remove tile from CategoriesListManage
-        //Destroy(tile.gameObject);
         CategoriesListManage.Remove(tile);
-        print("Tile Removed: " + tile.name);
     }
     public void PressTileRemove(TMP_Text tile)
     {
@@ -554,7 +539,6 @@ public class PackCreationManager : MonoBehaviour
             foreach (ImportedImageInfo tile in TilesList)
             {
                 TMP_Text newFolder = Instantiate(NoTilesFoundImage, ContentAreaImage.transform);
-                //newFolder.GetComponent<TileListController>().SetInfo(tile.size, tile.maxCount, tile.ImageSprite);
                 newFolder.GetComponent<TileListController>().SetInfo(tile);
                 TilesListImage.Add(newFolder);
             }
@@ -874,22 +858,6 @@ public class PackCreationManager : MonoBehaviour
         {
             if (tile.GetComponent<PairingsListController>().IsAvailable())
             {
-                /*
-                if (PairedTiles.ContainsKey(tile.GetComponent<PairingsListController>().GetTileInfo()))
-                {
-                    if (!PairedTiles[tile.GetComponent<PairingsListController>().GetTileInfo()].Contains(CurrentSelectedTile.GetComponent<PairingsListController>().GetTileInfo()))
-                        PairedTiles[tile.GetComponent<PairingsListController>().GetTileInfo()].Add(CurrentSelectedTile.GetComponent<PairingsListController>().GetTileInfo());
-                }
-                else if (PairedTiles.ContainsKey(CurrentSelectedTile.GetComponent<PairingsListController>().GetTileInfo()))
-                {
-                    if (!PairedTiles[CurrentSelectedTile.GetComponent<PairingsListController>().GetTileInfo()].Contains(tile.GetComponent<PairingsListController>().GetTileInfo()))
-                        PairedTiles[CurrentSelectedTile.GetComponent<PairingsListController>().GetTileInfo()].Add(tile.GetComponent<PairingsListController>().GetTileInfo());
-                }
-                else
-                    PairedTiles[CurrentSelectedTile.GetComponent<PairingsListController>().GetTileInfo()] = new List<ImportedImageInfo> { tile.GetComponent<PairingsListController>().GetTileInfo() };
-                */
-
-                // Lines 932-943 using PairedTileInfo PairedTiles object
                 int index = PairedTiles.FindIndex(x => x.Tile == tile.GetComponent<PairingsListController>().GetTileInfo());
                 if (index >= 0 && index < PairedTiles.Count)
                 {
@@ -907,14 +875,6 @@ public class PackCreationManager : MonoBehaviour
                 {
                     PairedTiles.Add(new PairedTileInfo { Tile = CurrentSelectedTile.GetComponent<PairingsListController>().GetTileInfo(), PairedTiles = new List<ImportedImageInfo> { tile.GetComponent<PairingsListController>().GetTileInfo() }, Category = GetTileCategory(tile).text });
                 }
-                
-                
-                
-                
-                
-                
-                
-                
                 
                 CurrentSelectedTile = null;
                 EnableAllPairingTiles();
@@ -979,7 +939,6 @@ public class PackCreationManager : MonoBehaviour
     {
         ImportedImageInfo tile = tilePair.GetComponent<PairDisplayController>().GetTileInfo();
         ImportedImageInfo pair = tilePair.GetComponent<PairDisplayController>().GetPairedTileInfo();
-        //if (PairedTiles.ContainsKey(tile))
         int index = PairedTiles.FindIndex(x => x.Tile == tile);
         if (index >= 0 && index < PairedTiles.Count)
         {
@@ -991,18 +950,6 @@ public class PackCreationManager : MonoBehaviour
         }
         ReloadPairingsDisplay();
     }
-
-    /*public void PressTestShowPairings()
-    {
-        foreach (KeyValuePair<ImportedImageInfo, List<ImportedImageInfo>> pair in PairedTiles)
-        {
-            print(pair.Key.ImageName + ": ");
-            foreach (ImportedImageInfo tile in pair.Value)
-            {
-                print("\t" + pair.Key.ImageName + ": " + tile.ImageName);
-            }
-        }
-    }*/
 #endif
 
 #if true // Set Up ZipFolder Save Location Section
@@ -1092,7 +1039,7 @@ public class PackCreationManager : MonoBehaviour
         string PackPath = GameBoardSetPath + "/" + PackNameInput.text;
         if (!Directory.Exists(PackPath)) { return; }
         string ZipPath = CurrentPath + PackNameInput.text + ".zip";
-        if (File.Exists(ZipPath)) { return; }
+        if (File.Exists(ZipPath)) { File.Delete(ZipPath); }
         ZipFile.CreateFromDirectory(PackPath, ZipPath);
         PressReturn();
     }
@@ -1101,28 +1048,7 @@ public class PackCreationManager : MonoBehaviour
 
 #if true // Public Methods
 
-    public void PressRemoveCategory(TMP_Text category)
-    {
-        if (CategoriesList.Contains(category.text)/*IsInDropdown(CategoryDropdown, category.text)*/)
-        {
-            //CategoryDropdown.options.Remove(CategoryDropdown.options.Find(x => x.text.ToLower() == category.text.ToLower()));
-            //CategoryDropdown.RefreshShownValue();
-            CategoriesList.Remove(category.text);
-            ReloadCategoriesListManage();
-        }
-    }
-
     // Button Presses
-    public void PressSelectCategory()
-    {
-
-    }
-    public void PressImport()
-    {
-        HideMenus();
-        ImportImageMenu.gameObject.SetActive(true);
-        ReloadFoldersListImageImport();
-    }
     public void PressAddTile()
     {
         if (string.IsNullOrEmpty(TileMaxCountInput.text)) { return; }
@@ -1137,9 +1063,10 @@ public class PackCreationManager : MonoBehaviour
     }
     public void PressRemoveTile(TMP_Text tileText)
     {
-        if (TilesList.Contains(tileText.GetComponent<TileListController>().GetTileInfo()))
+        ImportedImageInfo tileInfo = tileText.GetComponent<TileListController>().GetTileInfo();
+        if (TilesList.Contains(tileInfo))
         {
-            TilesList.Remove(tileText.GetComponent<TileListController>().GetTileInfo());
+            TilesList.Remove(tileInfo);
             ReloadTilesListImage();
         }
     }
@@ -1152,17 +1079,14 @@ public class PackCreationManager : MonoBehaviour
     public void PressWorldTile()
     {
         SetPresetSizes(5, 5);
-        SetSize();
     }
     public void PressObjectiveTile()
     {
         SetPresetSizes(3, 2);
-        SetSize();
     }
     public void PressDoorTile()
     {
         SetPresetSizes(2, 2);
-        SetSize();
     }
     public void PressConfirmCategoryName()
     {
@@ -1174,21 +1098,7 @@ public class PackCreationManager : MonoBehaviour
         newFolder.GetComponent<ManageCategoriesController>().SetFolder();
         newFolder.GetComponent<ManageCategoriesController>().SetNeither();
         CategoriesListManage.Add(newFolder);
-        //ReloadCategoriesListManage();
         AdjustCategoriesListManage();
-    }
-    public void PressConfirmImageImport()
-    {
-        // add image from CurrentImagePath to current category
-        if (string.IsNullOrEmpty(CurrentImagePath)) { PressCancelImageImport(); return; }
-        ImportImageMenu.gameObject.SetActive(false);
-    }
-    public void PressCancelImageImport()
-    {
-        if (string.IsNullOrEmpty(CurrentImagePath)) { return; }
-        CurrentImagePath = "";
-        PreviewImage.sprite = null;
-        HideMenus();
     }
     public void PressOpenFolder(TMP_Text Folder)
     {
@@ -1207,28 +1117,12 @@ public class PackCreationManager : MonoBehaviour
         if (texture == null) { return; }
         PreviewImage.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
         CurrentImagePath = imagePath;
-        //ImportImage(imagePath, destinationPath);
 
         ReloadFoldersListImageImport();
-
-        //PressRefreshGames();
-    }
-    public void PressReorderUp(TMP_Text Category)
-    {
-        int index = CategoriesList.FindIndex(x => x == Category.text);
-        if (index == 0) { return; }
-        (CategoriesList[index - 1], CategoriesList[index]) = (CategoriesList[index], CategoriesList[index - 1]);
-        ReloadCategoriesListManage();
-    }
-    public void PressReorderDown(TMP_Text Category)
-    {
-        int index = CategoriesList.FindIndex(x => x == Category.text);
-        if (index == CategoriesList.Count - 1) { return; }
-        (CategoriesList[index + 1], CategoriesList[index]) = (CategoriesList[index], CategoriesList[index + 1]);
-        ReloadCategoriesListManage();
     }
     public void PressCancelGeneratePack()
     {
+        // Add User FeedBack / Correct Cancellation
         HideMenus();
     }
 #endif
@@ -1237,12 +1131,10 @@ public class PackCreationManager : MonoBehaviour
 
     public void PressContinueTiles()
     {
-        HideMenus();
         ShowManageCategoriesSection();
     }
     public void PressContinueCategories()
     {
-        HideMenus();
         ShowManagePairingsSection();
     }
     public void PressConfirmGeneratePack()
@@ -1423,10 +1315,6 @@ public class PackCreationManager : MonoBehaviour
     {
         SceneManager.LoadScene(0);
     }
-    public void PressReturnImages()
-    {
-        SceneManager.LoadScene(0);
-    }
     public void PressReturnCategories()
     {
         HideMenus();
@@ -1576,7 +1464,6 @@ public class PackCreationManager : MonoBehaviour
     }
     private void ShowZipSaveLocationSection()
     {
-        //HideMenus(); 
         PackNameInput.interactable = false;
         ZipFolderLocationMenu.gameObject.SetActive(true);
         CurrentPath = GameBoardSetPath;

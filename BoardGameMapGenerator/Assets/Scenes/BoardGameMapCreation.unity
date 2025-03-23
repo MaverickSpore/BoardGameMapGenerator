@@ -1420,7 +1420,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 193955536}
-  - component: {fileID: 193955537}
   - component: {fileID: 193955535}
   - component: {fileID: 193955534}
   m_Layer: 0
@@ -1504,28 +1503,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1749232921}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &193955537
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 193955533}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 468c1fe0371dae0439b177e19801802d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  instance: {fileID: 0}
-  mainCamera: {fileID: 193955535}
-  parent: {fileID: 1749232920}
-  zoom: 0
-  pinchMulti: 1.047
-  zoomMulti: 10
-  zoomMin: 400
-  zoomMax: 800
-  dragMulti: 30
-  dragged: 0
 --- !u!1 &211284823
 GameObject:
   m_ObjectHideFlags: 0

@@ -37,19 +37,7 @@ public class ChildTileObjectController : MonoBehaviour
     {
         return currentImage.GetComponent<RectTransform>().sizeDelta.y + countText.GetComponent<RectTransform>().sizeDelta.y;
     }
-    public void SetHeight(float height)
-    {
-        currentImage.GetComponent<RectTransform>().sizeDelta = new Vector2(currentImage.GetComponent<RectTransform>().sizeDelta.x, height);
-    }
-    public void SetWidth(float width)
-    {
-        currentImage.GetComponent<RectTransform>().sizeDelta = new Vector2(width, currentImage.GetComponent<RectTransform>().sizeDelta.y);
-    }
-    public void SetSize(Vector2 size)
-    {
-        SetWidth(size.x);
-        SetHeight(size.y);
-    }
+
     public void SetYOffset(float newYOffset)
     {
         gameObject.transform.position = new Vector3(gameObject.transform.position.x, newYOffset - (currentImage.GetComponent<RectTransform>().sizeDelta.y * 0.5f) + (countText.GetComponent<RectTransform>().sizeDelta.y/* * 0.5f*/), gameObject.transform.position.z);
@@ -61,12 +49,7 @@ public class ChildTileObjectController : MonoBehaviour
             this.max = max;
         countText.text = this.current + " / " + this.max;
     }
-    public void SetSizeText(float width, float height)
-    {
-        current = (int)width;
-        max = (int)height;
-        countText.text = this.current + " x " + this.max;
-    }
+
     public void SetSingleMax(int max)
     {
         singleMax = max;
@@ -106,10 +89,6 @@ public class ChildTileObjectController : MonoBehaviour
     public ChildTileObjectController GetPairedTile()
     {
         return pairedTile;
-    }
-    public void SetTilesPaired(List<ChildTileObjectController> tilesPaired)
-    {
-        this.tilesPaired = tilesPaired;
     }
     public void AddToTilesPaired(ChildTileObjectController tile)
     {

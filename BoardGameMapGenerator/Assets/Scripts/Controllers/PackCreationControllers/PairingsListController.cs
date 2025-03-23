@@ -40,14 +40,6 @@ public class PairingsListController : MonoBehaviour
     {
         return TileInfo;
     }
-    public string GetTileName()
-    {
-        return TileInfo.ImageName;
-    }
-    public float GetWidth()
-    {
-        return Width;
-    }
     public float GetHeight()
     {
         return Height;

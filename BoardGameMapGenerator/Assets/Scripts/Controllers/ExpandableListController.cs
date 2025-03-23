@@ -54,7 +54,7 @@ public class ExpandableListController : MonoBehaviour
     }
     public void PressExpandButton(int mode = -1)
     {
-        if (expandButtonText.text == ">" || mode == 1)
+        if ((expandButtonText.text == ">" && mode != 0) || mode == 1)
         {
             expandButtonText.text = "v";
             ExpandContent();
@@ -126,10 +126,6 @@ public class ExpandableListController : MonoBehaviour
     {
         childLists.Add(child);
     }
-    public void RemoveChildList(ref ExpandableListController child)
-    {
-        childLists.Remove(child);
-    }
     public List<ExpandableListController> GetChildList()
     {
         return childLists;
@@ -150,26 +146,10 @@ public class ExpandableListController : MonoBehaviour
 
         return newTile;
     }
-    public ChildTileObjectController AddChildSprite(ref Sprite childSprite, float tileWidth, float tileHeight, string spriteName = "DefaultName")
-    {
-        ChildTileObjectController newTile = Instantiate(tileTemplate, content.transform);
-
-        newTile.SetImage(childSprite, spriteName);
-        newTile.SetYOffset(transform.position.y - GetListHeight());
-
-        newTile.SetSizeText(tileWidth, tileHeight);
-        //newTile.SetSingleMax(count);
-
-        AddChildTile(ref newTile);
-
-        return newTile;
-    }
 
     void AddChildTile(ref ChildTileObjectController childTile)
     {
         childTiles.Add(childTile);
-        if (BoardCreationManager.Instance != null)
-            BoardCreationManager.Instance.AdjustsGamesListYOffset();
     }
     void AdjustChildTiles()
     {
@@ -188,15 +168,11 @@ public class ExpandableListController : MonoBehaviour
 
     void ExpandContent()
     {
-        //print("Content Expanded");
-
         content.SetActive(true);
     }
 
     void CollapseContent()
     {
-        //print("Content Collapsed");
-
         content.SetActive(false);
     }
 
@@ -236,9 +212,5 @@ public class ExpandableListController : MonoBehaviour
         {
             ListCountText.gameObject.SetActive(false);
         }
-    }
-    public int GetCount()
-    {
-        return ListCount;
     }
 }

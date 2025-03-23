@@ -48,16 +48,10 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
         else
             imageHeight += gridSize - heightAdjust;
 
-        //currentImage.GetComponent<RectTransform>().sizeDelta = new Vector2(imageWidth, imageHeight);
         currentImage.rectTransform.sizeDelta = new Vector2(imageWidth, imageHeight);
-        //mainImageLeaveWhite.GetComponent<RectTransform>().sizeDelta = new Vector2(imageWidth, imageHeight);
         mainImageLeaveWhite.rectTransform.sizeDelta = new Vector2(imageWidth, imageHeight);
 
         AdjustToGrid();
-    }
-    public Image GetCurrentImage()
-    {
-        return currentImage;
     }
     public void AdjustToGrid()
     {
@@ -86,19 +80,6 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
     {
         return parentTile.GetSpriteName();
     }
-    public Vector2 GetSize()
-    {
-        switch (currentRotation)
-        {
-            case 0:
-            case 180:
-            default:
-                return new Vector2(currentImage.GetComponent<RectTransform>().sizeDelta.x, currentImage.GetComponent<RectTransform>().sizeDelta.y);
-            case 90:
-            case 270:
-                return new Vector2(currentImage.GetComponent<RectTransform>().sizeDelta.y, currentImage.GetComponent<RectTransform>().sizeDelta.x);
-        }
-    }
     public int GetRotation()
     {
         return currentRotation;
@@ -110,7 +91,6 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
 
     private void Update()
     {
-        //if (!BoardCreationManager.instance.GetTilesLocked())
         if (BoardCreationManager.Instance.GetMode() == BoardCreationManager.Mode.Move)
         {
             if (isDragged)
@@ -215,19 +195,6 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
     {
         isHovered = false;
     }
-    public void SetButtonHovered(bool isHovered)
-    {
-        this.isButtonHovered = isHovered;
-    }
-    public bool GetHovered()
-    {
-        return isHovered;
-    }
-
-    public void PressChildTile()
-    {
-        //BoardCreationManager.instance.SetPieceSelected(this);
-    }
 
     public void PressDeleteTile(int amount = 1)
     {
@@ -245,7 +212,6 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
             currentRotation = 0;
 
         AdjustToGrid();
-
     }
     public void PressRotateCCW()
     {
@@ -255,7 +221,6 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
             currentRotation = 270;
 
         AdjustToGrid();
-
     }
 
     public void PressZForward()
