@@ -1040,7 +1040,7 @@ public class PackCreationManager : MonoBehaviour
         if (!Directory.Exists(PackPath)) { return; }
         string ZipPath = CurrentPath + PackNameInput.text + ".zip";
         if (File.Exists(ZipPath)) { File.Delete(ZipPath); }
-        ZipFile.CreateFromDirectory(PackPath, ZipPath);
+        ZipFile.CreateFromDirectory(PackPath, ZipPath, System.IO.Compression.CompressionLevel.NoCompression, true);
         PressReturn();
     }
 

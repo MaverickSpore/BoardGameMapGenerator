@@ -168,6 +168,12 @@ public class GameSelectManager : MonoBehaviour
     bool LoadGameNames()
     {
         GameNamesFromFolders = new();
+        if (!Directory.Exists(Application.dataPath + GameNamesFilePath))
+        {
+            Directory.CreateDirectory(Application.dataPath + GameNamesFilePath);
+            return false;
+        }
+
         DirectoryInfo dirInfoPath = new(Application.dataPath + GameNamesFilePath);
         DirectoryInfo[] gameNames = dirInfoPath.GetDirectories("*.*", SearchOption.TopDirectoryOnly);
         if (gameNames.Length == 0) return false;

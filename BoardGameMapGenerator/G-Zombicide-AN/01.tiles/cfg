@@ -1,0 +1,4 @@
+name=Tiles
+pairs=10R.png:10V.png;11R.png:11V.png;12R.png:12V.png
+max=10R.png:1;10V.png:1;11R.png:1;11V.png:1;12R.png:1;12V.png:1
+cfg

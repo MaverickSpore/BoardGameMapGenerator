@@ -20,7 +20,7 @@ public class BoardCreationManager : MonoBehaviour
     [SerializeField] Button locationMarker;
     [SerializeField] Button clearSelection;
     [SerializeField] RectTransform CategoriesContentArea;
-    [SerializeField] RectTransform MapArea;
+    public RectTransform MapArea;
     [SerializeField] RectTransform PlaceableArea;
     [SerializeField] ExpandableListController ExpandableListTemplate;
     [SerializeField] GameObject TilesListStartingLocation;
@@ -84,7 +84,7 @@ public class BoardCreationManager : MonoBehaviour
         IDToTile = new();
         GamesList = new();
         SelectableTiles = new();
-        gridSize = 32;
+        gridSize = 8;
 
         if (GetGameNames()) { }
         else { print("Failed to get Game Names from File"); }
@@ -116,7 +116,11 @@ public class BoardCreationManager : MonoBehaviour
                 TilePlacingHighlight.transform.position = mousePos;
 
                 TilePlacingHighlight.GetComponent<RectTransform>().sizeDelta = selectedPiece.GetImageSize();
-                TilePlacingHighlight.transform.position = new Vector3(TilePlacingHighlight.transform.position.x - ((TilePlacingHighlight.transform.position.x % (gridSize)) - (gridSize / 2.0f)), TilePlacingHighlight.transform.position.y - ((TilePlacingHighlight.transform.position.y % (gridSize)) - (gridSize / 2.0f)), -1);
+                Vector2 highlightLoc = new Vector3(TilePlacingHighlight.transform.position.x - ((TilePlacingHighlight.transform.position.x % gridSize) - gridSize), TilePlacingHighlight.transform.position.y - ((TilePlacingHighlight.transform.position.y % gridSize) - gridSize), -1);
+                Vector2 gridOffset = new Vector2(MapArea.position.x % gridSize, MapArea.position.y % gridSize);
+                highlightLoc.x -= gridOffset.x;
+                highlightLoc.y -= gridOffset.y;
+                TilePlacingHighlight.transform.position = new Vector3(highlightLoc.x, highlightLoc.y, -1);
                 
                 if (Input.GetMouseButtonUp(0))
                 {
@@ -127,11 +131,11 @@ public class BoardCreationManager : MonoBehaviour
                     else
                     {
                         // Place Tile On Board
-                        TileObjectPlacedController newPiece = Instantiate(TileObjectPlacedTemplate, mousePos, Quaternion.identity, MapArea.transform);
+                        TileObjectPlacedController newPiece = Instantiate(TileObjectPlacedTemplate, highlightLoc, Quaternion.identity, MapArea.transform);
                         boardPieces.Add(newPiece.gameObject);
                         newPiece.SetImage(selectedPiece.GetImage());
                         newPiece.SetParentTile(selectedPiece);
-                        newPiece.AdjustToGrid();
+                        //newPiece.AdjustToGrid();
                         //newPiece.transform.position = new Vector3(mousePos.x, mousePos.y, 0);
                         selectedPiece.SetCountText(selectedPiece.GetCurrent() - 1);
                         newPiece.SetPackNumber(selectedPiece.GetMax() - selectedPiece.GetCurrent());

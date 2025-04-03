@@ -124,30 +124,31 @@ public class PackImportManager : MonoBehaviour
         NoFoldersFound.gameObject.SetActive(false);
         AdjustFoldersList();
     }
-    private void ImportZipFile(string zipPath, string destinationPath)
+    private void ImportZipFile(string zipPath)
     {
         FileStream fileStream = new(zipPath, FileMode.Open, FileAccess.Read);
         if (fileStream == null) { return; }
         ZipArchive archive = new(fileStream, ZipArchiveMode.Read);
         if (archive == null) { return; }
 
-        string masterFolder = archive.Entries[0].FullName;
-        masterFolder = GetParentFolder(destinationPath) + masterFolder;
-
-        while (GetParentFolder(masterFolder) != GameBoardSetPath)
+        string firstEntry = GameBoardSetPath + archive.Entries[0].FullName;
+        if (!firstEntry.EndsWith("/"))
         {
-            masterFolder = GetParentFolder(masterFolder);
-            if (masterFolder == GameBoardSetPath) { return; }
-            if (masterFolder.Length <= GameBoardSetPath.Length) { return; }
+            firstEntry = GetParentFolder(firstEntry);
         }
-
+        string destinationPath = GameBoardSetPath;
+        
         foreach (ZipArchiveEntry entry in archive.Entries)
         {
-            string entryPath = GetParentFolder(destinationPath) + entry.FullName;
+            string entryPath = destinationPath + entry.FullName;
             if (entryPath.EndsWith("/"))
             {
                 Directory.CreateDirectory(entryPath);
                 continue;
+            }
+            if (!Directory.Exists(GetParentFolder(entryPath)))
+            {
+                Directory.CreateDirectory(GetParentFolder(entryPath));
             }
             if (File.Exists(entryPath))
             {
@@ -156,7 +157,7 @@ public class PackImportManager : MonoBehaviour
             entry.ExtractToFile(entryPath);
         }
         fileStream.Close();
-        ErrorCode result = IsBuildableFolder(masterFolder);
+        ErrorCode result = IsBuildableFolder(firstEntry);
         if (result == ErrorCode.SUCCESS)
         {
             // Pop up "Good Pack" message
@@ -168,13 +169,13 @@ public class PackImportManager : MonoBehaviour
         else
         {
             // Pop up "Bad Pack" message
-            if (Directory.Exists(masterFolder))
+            if (Directory.Exists(firstEntry))
             {
-                Directory.Delete(masterFolder, true);
+                Directory.Delete(firstEntry, true);
             }
-            if (File.Exists(masterFolder[..^1] + ".meta"))
+            if (File.Exists(firstEntry[..^1] + ".meta"))
             {
-                File.Delete(masterFolder[..^1] + ".meta");
+                File.Delete(firstEntry[..^1] + ".meta");
             }
             if (GameSelectManager.instance != null)
             {
@@ -282,7 +283,6 @@ public class PackImportManager : MonoBehaviour
             List<string> cfgSubStrings = SeperateStrings(subConfigString, '\n');
             bool hasName = false;
             bool hasMax = false;
-            bool hasPairs = false;
             foreach (string cfgString in cfgSubStrings)
             {
                 // Check for name
@@ -323,7 +323,6 @@ public class PackImportManager : MonoBehaviour
                 // Check for pairs
                 if (cfgString.Contains("pairs="))
                 {
-                    hasPairs = true;
                     List<string> pairsSplit = SeperateStrings(cfgString,'=');
                     if (pairsSplit.Count != 2)
                         return ErrorCode.CFGBADPAIRS;
@@ -347,8 +346,6 @@ public class PackImportManager : MonoBehaviour
                 return ErrorCode.CFGNONAME;
             if (!hasMax)
                 return ErrorCode.CFGBADMAX;
-            if (!hasPairs)
-                return ErrorCode.CFGBADPAIRS;
         }
         // for later user feedback
         return ErrorCode.SUCCESS;
@@ -375,9 +372,8 @@ public class PackImportManager : MonoBehaviour
     {
         // Import Zip Folder To GameBoardSets Folder
         string zipPath = CurrentPath + Folder.text;
-        string destinationPath = GameBoardSetPath + Folder.text;
 
-        ImportZipFile(zipPath, destinationPath);
+        ImportZipFile(zipPath);
 
         ReloadFoldersList();
         if (PackDeletionManager.instance != null)
@@ -390,9 +386,9 @@ public class PackImportManager : MonoBehaviour
     public void PressExitFolder()
     {
         CurrentPath = GetParentFolder(CurrentPath);
-
         if (CurrentPath == "" || CurrentPath == "/")
         {
+            CurrentPath = "";
             GetDrives();
             return;
         }

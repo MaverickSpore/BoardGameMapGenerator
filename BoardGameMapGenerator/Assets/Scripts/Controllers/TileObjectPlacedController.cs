@@ -51,7 +51,7 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
         currentImage.rectTransform.sizeDelta = new Vector2(imageWidth, imageHeight);
         mainImageLeaveWhite.rectTransform.sizeDelta = new Vector2(imageWidth, imageHeight);
 
-        AdjustToGrid();
+        //AdjustToGrid();
     }
     public void AdjustToGrid()
     {
@@ -61,12 +61,12 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
             case 0:
             case 180:
                 mainImageLeaveWhite.GetComponent<RectTransform>().sizeDelta = new Vector2(currentImage.GetComponent<RectTransform>().sizeDelta.x, currentImage.GetComponent<RectTransform>().sizeDelta.y);
-                transform.position = new Vector3(transform.position.x - ((transform.position.x % (gridSize)) - (gridSize / 2.0f)), transform.position.y - ((transform.position.y % (gridSize)) - (gridSize / 2.0f)), transform.position.z);
+                transform.position = new Vector3(transform.position.x - ((transform.position.x % gridSize) - gridSize), transform.position.y - ((transform.position.y % gridSize) - gridSize), transform.position.z);
                 break;
             case 90:
             case 270:
                 mainImageLeaveWhite.GetComponent<RectTransform>().sizeDelta = new Vector2(currentImage.GetComponent<RectTransform>().sizeDelta.y, currentImage.GetComponent<RectTransform>().sizeDelta.x);
-                transform.position = new Vector3(transform.position.x - ((transform.position.y % (gridSize)) - (gridSize / 2.0f)), transform.position.y - ((transform.position.x % (gridSize)) - (gridSize / 2.0f)), transform.position.z);
+                transform.position = new Vector3(transform.position.x - ((transform.position.y % gridSize) - gridSize), transform.position.y - ((transform.position.x % gridSize) - gridSize), transform.position.z);
                 break;
         }
 
@@ -91,6 +91,11 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
 
     private void Update()
     {
+        if (Input.GetMouseButtonUp(0))
+        {
+            isDragged = false;
+        }
+
         if (BoardCreationManager.Instance.GetMode() == BoardCreationManager.Mode.Move)
         {
             if (isDragged)
@@ -103,8 +108,11 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
 
                 Vector3 mousePos = Input.mousePosition;
                 float gridSize = BoardCreationManager.Instance.GetGridSize();
-                mousePos.x -= (mousePos.x % gridSize) - (gridSize / 4.0f);
-                mousePos.y -= (mousePos.y % gridSize) - (gridSize / 4.0f);
+                Vector2 gridOffset = new Vector2(BoardCreationManager.Instance.MapArea.position.x % gridSize, BoardCreationManager.Instance.MapArea.position.y % gridSize);
+                mousePos.x -= (mousePos.x % gridSize) - gridSize;
+                mousePos.y -= (mousePos.y % gridSize) - gridSize;
+                mousePos.x -= gridOffset.x;
+                mousePos.y -= gridOffset.y;
                 transform.position = new Vector3(mousePos.x, mousePos.y, -1);
                 //AdjustToGrid();
 
@@ -211,7 +219,7 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
         if (currentRotation == 360)
             currentRotation = 0;
 
-        AdjustToGrid();
+        //AdjustToGrid();
     }
     public void PressRotateCCW()
     {
@@ -220,7 +228,7 @@ public class TileObjectPlacedController : MonoBehaviour, IPointerEnterHandler, I
         if (currentRotation == -90)
             currentRotation = 270;
 
-        AdjustToGrid();
+        //AdjustToGrid();
     }
 
     public void PressZForward()

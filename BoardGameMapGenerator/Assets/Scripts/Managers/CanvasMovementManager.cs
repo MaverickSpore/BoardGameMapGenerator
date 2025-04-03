@@ -67,6 +67,12 @@ public class CanvasMovementManager : MonoBehaviour
         if (Input.GetMouseButton(0))
         {
             Vector2 mousePos = Input.mousePosition;
+            if (BoardCreationManager.Instance != null)
+            {
+                float gridSize = BoardCreationManager.Instance.GetGridSize();
+                mousePos.x -= (mousePos.x % gridSize) - gridSize;
+                mousePos.y -= (mousePos.y % gridSize) - gridSize;
+            }
             if (PrevMousePos == Vector2.zero)
             {
                 PrevMousePos = mousePos;
